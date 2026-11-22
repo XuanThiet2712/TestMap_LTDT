@@ -558,6 +558,24 @@ namespace TestMap
                            ", thuật toán chạy " + result.ElapsedMs.ToString("F1") + " ms. Thời gian là ước tính (xe 18 km/h, dừng 20 giây mỗi trạm).";
         }
 
+        private void InitializeComponent()
+        {
+            this.SuspendLayout();
+            // 
+            // Form1
+            // 
+            this.ClientSize = new System.Drawing.Size(282, 253);
+            this.Name = "Form1";
+            this.Load += new System.EventHandler(this.Form1_Load);
+            this.ResumeLayout(false);
+
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
         private void lstStops_SelectedIndexChanged(object sender, EventArgs e)
         {
             int i = lstStops.SelectedIndex;
