@@ -26,9 +26,12 @@ namespace TestMap.Routing
     // Một trạm xe buýt
     public class BusStop
     {
-        public double Lat, Lng;     // vị trí thật của trạm
-        public int Node;            // giao lộ trong mạng đường mà trạm được gắn vào
+        public double Lat, Lng;         // vị trí dùng để vẽ: nằm ĐÚNG trên đường (trùng với giao lộ mà trạm gắn vào)
+        public double RawLat, RawLng;   // vị trí gốc trong OpenStreetMap (thường nằm trên vỉa hè, lệch đường vài chục mét)
+        public int Node;                // giao lộ trong mạng đường mà trạm được gắn vào
         public string Name;
+
+        public override string ToString() { return Name; }
     }
 
     // Mạng đường: giao lộ (nodes) + đoạn đường (edges)
@@ -117,10 +120,14 @@ namespace TestMap.Routing
                     if (p.Length < 4) continue;
                     int node = int.Parse(p[2], inv);
                     if (node < 0 || node >= Nodes.Count) continue;
+                    // Vẽ trạm tại chính giao lộ nó gắn vào: đường đi đi qua giao lộ này nên trạm luôn nằm đúng trên tuyến
+                    // (trước đây vẽ ở vị trí gốc trên vỉa hè nên bị lệch khỏi đường đi tới 50-60 m).
                     Stops.Add(new BusStop
                     {
-                        Lat = double.Parse(p[0], inv),
-                        Lng = double.Parse(p[1], inv),
+                        RawLat = double.Parse(p[0], inv),
+                        RawLng = double.Parse(p[1], inv),
+                        Lat = Nodes[node].Lat,
+                        Lng = Nodes[node].Lng,
                         Node = node,
                         Name = p[3]
                     });

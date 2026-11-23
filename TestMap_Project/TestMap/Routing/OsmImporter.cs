@@ -16,13 +16,13 @@ namespace TestMap.Routing
     // Chỉ cần Internet ở lần tải đầu tiên; lần sau đọc thẳng từ 3 file này.
     public static class OsmImporter
     {
-        private static readonly string[] Servers =
-        {
-        "https://overpass-api.de/api/interpreter",
-        "https://overpass.private.coffee/api/interpreter",
-        "https://overpass.kumi.systems/api/interpreter",
-        "https://overpass.openstreetmap.fr/api/interpreter"
-        };
+        internal static readonly string[] Servers =
+{
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.openstreetmap.fr/api/interpreter"
+};
 
         // Các loại đường ô tô/xe buýt đi được -> cấp đường dùng để vẽ (0 nhỏ ... 3 lớn)
         private static readonly Dictionary<string, int> RoadClass = new Dictionary<string, int>
@@ -36,6 +36,7 @@ namespace TestMap.Routing
 
         private class WayTmp { public List<long> Refs; public bool OneWay; public int Cls; }
         private class StopTmp { public LatLng Pos; public string Name; public long Vertex; }
+        private class SplitTmp { public int Way, Seg; public double T; public long Id; }
         private class EdgeTmp { public int A, B; public double Length; public bool OneWay; public List<LatLng> Geo; public int Cls; }
 
         // Gọi trong luồng nền (Task.Run). progress nhận các dòng trạng thái để hiển thị.
@@ -59,8 +60,6 @@ namespace TestMap.Routing
             Exception lastError = null;
             for (int attempt = 0; attempt < 2 && data == null; attempt++)
             {
-
-
                 foreach (string url in Servers)
                 {
                     try
@@ -91,10 +90,50 @@ namespace TestMap.Routing
                         data = null;
                     }
                 }
-
                 if (data == null)
                     throw new Exception("không kết nối được máy chủ OpenStreetMap (" + (lastError != null ? lastError.Message : "") + ")");
             }
+            ConvertOsm(data, outDir, progress);
+        }
+
+        // Gửi một truy vấn Overpass, thử lần lượt các máy chủ. Dùng cho việc tải tuyến xe buýt.
+        internal static byte[] Post(string query, int timeoutMs, Action<string> progress)
+        {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+            Exception last = null;
+            foreach (string url in Servers)
+            {
+                try
+                {
+                    progress("Đang tải từ " + new Uri(url).Host + " (có thể mất 10-60 giây)...");
+                    var req = (HttpWebRequest)WebRequest.Create(url);
+                    req.Method = "POST";
+                    req.UserAgent = "TestMapDemo/1.0 (hoc tap)";
+                    req.ContentType = "application/x-www-form-urlencoded";
+                    req.Timeout = timeoutMs;
+                    req.ReadWriteTimeout = timeoutMs;
+                    req.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+                    byte[] body = Encoding.UTF8.GetBytes("data=" + Uri.EscapeDataString(query));
+                    req.ContentLength = body.Length;
+                    using (Stream rs = req.GetRequestStream()) rs.Write(body, 0, body.Length);
+                    using (var resp = (HttpWebResponse)req.GetResponse())
+                    using (Stream st = resp.GetResponseStream())
+                    using (var ms = new MemoryStream())
+                    {
+                        st.CopyTo(ms);
+                        return ms.ToArray();
+                    }
+                }
+                catch (Exception ex) { last = ex; }
+            }
+            throw new Exception("không kết nối được máy chủ OpenStreetMap (" + (last != null ? last.Message : "") + ")");
+        }
+
+        // Đổi dữ liệu OSM (XML) thành 3 file csv. Tách riêng khỏi phần tải để kiểm thử được mà không cần Internet.
+        public static void ConvertOsm(byte[] data, string outDir, Action<string> progress)
+        {
+            var inv = CultureInfo.InvariantCulture;
+
             // ---------- 2. Đọc XML ----------
             progress("Đang xử lý dữ liệu...");
             XDocument doc;
@@ -185,30 +224,72 @@ namespace TestMap.Routing
             foreach (KeyValuePair<long, int> kv in useCount)
                 if (kv.Value >= 2) junction.Add(kv.Key);
 
-            // Gắn mỗi trạm vào điểm gần nhất trên đường (trong 60 m) và biến điểm đó thành giao lộ,
-            // nhờ vậy đường đi sẽ đi đúng qua trạm.
-            var vertexList = new List<long>(useCount.Keys);
+            // Gắn mỗi trạm vào ĐIỂM GẦN NHẤT TRÊN ĐƯỜNG (chiếu vuông góc lên đoạn đường, trong 50 m) rồi biến điểm đó
+            // thành giao lộ. Nhờ vậy trạm nằm đúng trên đường và đường đi đi qua đúng trạm.
+            // (Bản cũ chỉ chọn điểm nút gần nhất nên trạm có thể lệch khỏi đường tới ~60 m.)
             var keptStops = new List<StopTmp>();
+            var inserts = new List<SplitTmp>();
+            long fakeId = 0;                       // điểm mới tạo dùng id âm để không trùng id thật của OSM
             foreach (StopTmp st in stops)
             {
-                double k = Math.Cos(st.Pos.Lat * Math.PI / 180);
-                double best = double.MaxValue;
-                long bestV = -1;
-                foreach (long v in vertexList)
+                double mx = 111320.0 * Math.Cos(st.Pos.Lat * Math.PI / 180), my = 111320.0;
+                double best = double.MaxValue, bestDist = 0, bestT = 0, bestLen = 0;
+                int bestWay = -1, bestSeg = -1;
+                for (int wi = 0; wi < ways.Count; wi++)
                 {
-                    LatLng p = coords[v];
-                    double dy = (p.Lat - st.Pos.Lat) * 111320.0;
-                    double dx = (p.Lng - st.Pos.Lng) * 111320.0 * k;
-                    double d = dx * dx + dy * dy;
-                    if (d < best) { best = d; bestV = v; }
+                    WayTmp w = ways[wi];
+                    if (w.Refs.Count < 2) continue;
+                    double penalty = w.Cls == 0 ? 8.0 : 0.0;      // ở ngã tư, ưu tiên đường lớn hơn hẻm
+                    LatLng pa = coords[w.Refs[0]];
+                    for (int i = 0; i + 1 < w.Refs.Count; i++)
+                    {
+                        LatLng pb = coords[w.Refs[i + 1]];
+                        double ax = (pa.Lng - st.Pos.Lng) * mx, ay = (pa.Lat - st.Pos.Lat) * my;
+                        double bx = (pb.Lng - st.Pos.Lng) * mx, by = (pb.Lat - st.Pos.Lat) * my;
+                        double dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+                        double t = len2 > 0 ? -(ax * dx + ay * dy) / len2 : 0;
+                        if (t < 0) t = 0; else if (t > 1) t = 1;
+                        double qx = ax + t * dx, qy = ay + t * dy;
+                        double d = Math.Sqrt(qx * qx + qy * qy);
+                        if (d + penalty < best)
+                        {
+                            best = d + penalty; bestDist = d; bestT = t; bestLen = Math.Sqrt(len2);
+                            bestWay = wi; bestSeg = i;
+                        }
+                        pa = pb;
+                    }
                 }
-                if (bestV >= 0 && best <= 60.0 * 60.0)
+                if (bestWay < 0 || bestDist > 50.0) continue;
+
+                WayTmp bw = ways[bestWay];
+                if (bestT * bestLen < 3.0) st.Vertex = bw.Refs[bestSeg];                  // sát điểm đầu đoạn: dùng luôn điểm đó
+                else if ((1 - bestT) * bestLen < 3.0) st.Vertex = bw.Refs[bestSeg + 1];   // sát điểm cuối đoạn
+                else
                 {
-                    st.Vertex = bestV;
-                    junction.Add(bestV);
-                    keptStops.Add(st);
+                    long id = 0;
+                    foreach (SplitTmp sp in inserts)      // hai trạm đối diện nhau thì dùng chung một điểm
+                        if (sp.Way == bestWay && sp.Seg == bestSeg && Math.Abs(sp.T - bestT) * bestLen < 1.0) { id = sp.Id; break; }
+                    if (id == 0)
+                    {
+                        LatLng a = coords[bw.Refs[bestSeg]], b = coords[bw.Refs[bestSeg + 1]];
+                        id = --fakeId;
+                        coords[id] = new LatLng(a.Lat + (b.Lat - a.Lat) * bestT, a.Lng + (b.Lng - a.Lng) * bestT);
+                        inserts.Add(new SplitTmp { Way = bestWay, Seg = bestSeg, T = bestT, Id = id });
+                    }
+                    st.Vertex = id;
                 }
+                junction.Add(st.Vertex);
+                keptStops.Add(st);
             }
+
+            // Chèn các điểm mới vào đường. Chèn từ cuối về đầu để chỉ số chưa chèn không bị xê dịch.
+            inserts.Sort(delegate (SplitTmp x, SplitTmp y)
+            {
+                if (x.Way != y.Way) return x.Way.CompareTo(y.Way);
+                if (x.Seg != y.Seg) return y.Seg.CompareTo(x.Seg);
+                return y.T.CompareTo(x.T);
+            });
+            foreach (SplitTmp sp in inserts) ways[sp.Way].Refs.Insert(sp.Seg + 1, sp.Id);
 
             // ---------- 4. Cắt đường thành các đoạn giữa 2 giao lộ ----------
             var index = new Dictionary<long, int>();
