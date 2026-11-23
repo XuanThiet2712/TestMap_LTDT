@@ -134,6 +134,12 @@ namespace TestMap.Routing
                 }
             }
 
+            RebuildStopIndex();
+        }
+
+        // Dựng lại bảng "giao lộ -> các trạm gắn vào nó" sau khi danh sách trạm thay đổi
+        public void RebuildStopIndex()
+        {
             StopsAtNode = new List<int>[Nodes.Count];
             for (int i = 0; i < Stops.Count; i++)
             {

@@ -10,12 +10,15 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using GMap.NET;
 using GMap.NET.MapProviders;
+using TestMap.Forms;
 using TestMap.Mapping;
 using TestMap.Routing;
+using TestMap.Services;
 
 namespace TestMap
 {
-    // Giao diện dựng bằng code (không dùng Designer).
+    // Giao diện nằm trong Form1.Designer.cs: mở Form1.cs ở chế độ [Design] để kéo thả / chỉnh bằng chuột.
+    // File này chỉ chứa phần xử lý (logic).
     //
     // Cách dùng:
     //   - Chọn điểm đi (A) và điểm đến (B): bấm vào trạm trên bản đồ, hoặc gõ tên trạm vào ô A / B.
@@ -23,7 +26,7 @@ namespace TestMap
     //   - Tab "Ngắn nhất": đường ngắn nhất theo đường bộ (Dijkstra / A*), kèm xe chạy thử dọc tuyến.
     //   - Tab "Các tuyến": danh sách các tuyến xe buýt, chọn một tuyến để xem lộ trình và xe đang chạy.
     //   - Chuột phải lên bản đồ: chọn trạm gần nhất. Phím Esc: xóa.
-    public class Form1 : Form
+    public partial class Form1 : Form, IAdminHost
     {
         // ----- Các khu vực có thể chọn (hộp tọa độ gần đúng: nam, tây, bắc, đông). Muốn thêm khu vực thì thêm 1 dòng. -----
         private class Area
@@ -37,10 +40,8 @@ namespace TestMap
 
         private static readonly Area[] Areas =
         {
-            new Area("hcm_q1",  "TP.HCM - Quận 1",  10.7640, 106.6850, 10.7900, 106.7110),
-            new Area("hcm_q3",  "TP.HCM - Quận 3",  10.7700, 106.6660, 10.7900, 106.6910),
-            new Area("hcm_q5",  "TP.HCM - Quận 5",  10.7490, 106.6500, 10.7640, 106.6720),
-            new Area("hcm_q10", "TP.HCM - Quận 10", 10.7620, 106.6560, 10.7800, 106.6790),
+            // Quận 1, 3, 5, 10 gộp thành MỘT bản đồ (hộp bao ngoài cùng của 4 quận).
+            new Area("hcm_q1_3_5_10", "TP.HCM - Quận 1, 3, 5, 10", 10.7490, 106.6500, 10.7900, 106.7110),
             new Area("hn_hk",   "Hà Nội - Hoàn Kiếm", 21.0170, 105.8380, 21.0380, 105.8600),
             new Area("hn_bd",   "Hà Nội - Ba Đình",   21.0280, 105.8090, 21.0480, 105.8400),
             new Area("dn_hc",   "Đà Nẵng - Hải Châu", 16.0400, 108.1900, 16.0800, 108.2300),
@@ -64,54 +65,15 @@ namespace TestMap
         private static readonly Font ChipFont = new Font("Segoe UI", 10f, FontStyle.Bold);
         private static readonly Font BigTimeFont = new Font("Segoe UI", 15f, FontStyle.Bold);
         private static readonly Font InfoFont = new Font("Segoe UI", 9.5f);
+        private static readonly Font SmallBoldFont = new Font("Segoe UI", 8.75f, FontStyle.Bold);
+        private static readonly Font SmallFont = new Font("Segoe UI", 8.5f);
 
         private enum Phase { Idle, Explore, Reveal }
         private enum Mode { Bus, Shortest, Lines }
 
         private class StepItem { public Color Color; public string Title, Sub; }
 
-        // ----- Điều khiển -----
-        private readonly MapCanvas mapCanvas = new MapCanvas();
-        private readonly ComboBox cboArea = new ComboBox();
-        private readonly ComboBox cboAlgo = new ComboBox();
-        private readonly ComboBox cboFrom = new ComboBox();
-        private readonly ComboBox cboTo = new ComboBox();
-        private readonly ComboBox cboRides = new ComboBox();
-        private readonly Button btnReload = new Button();
-        private readonly Button btnLoadLines = new Button();
-        private readonly Button btnRun = new Button();
-        private readonly Button btnCompare = new Button();
-        private readonly Button btnSwap = new Button();
-        private readonly Button btnReset = new Button();
-        private readonly Button btnBus = new Button();
-        private readonly Button btnZoomIn = new Button();
-        private readonly Button btnZoomOut = new Button();
-        private readonly Button btnTabBus = new Button();
-        private readonly Button btnTabShortest = new Button();
-        private readonly Button btnTabLines = new Button();
-        private readonly CheckBox chkStops = new CheckBox();
-        private readonly CheckBox chkSearch = new CheckBox();
-        private readonly CheckBox chkLines = new CheckBox();
-        private readonly CheckBox chkBuses = new CheckBox();
-        private readonly Label lblInfo = new Label();
-        private readonly Label lblDemoBus = new Label();
-        private readonly Label lblDemoLines = new Label();
-        private readonly Label lblItinMsg = new Label();
-        private readonly LinkLabel lnkCopy = new LinkLabel();
-        private readonly LinkLabel lnkCopyBus = new LinkLabel();
-        private Label lblDist, lblTime, lblStopCount, lblVisited;
-        private readonly ListBox lstStops = new ListBox();
-        private readonly ListBox lstItins = new ListBox();
-        private readonly ListBox lstSteps = new ListBox();
-        private readonly ListBox lstLines = new ListBox();
-        private readonly Panel pnlBus = new Panel();
-        private readonly Panel pnlShortest = new Panel();
-        private readonly Panel pnlLines = new Panel();
-
         // ----- Trạng thái -----
-        private readonly Timer timer = new Timer();       // hoạt ảnh thuật toán và hoạt ảnh vẽ tuyến
-        private readonly Timer busTimer = new Timer();    // xe chạy thử dọc đường ngắn nhất
-        private readonly Timer liveTimer = new Timer();   // xe buýt đang chạy (mô phỏng) trên các tuyến
         private readonly Stopwatch revealWatch = new Stopwatch();
         private readonly Stopwatch liveWatch = Stopwatch.StartNew();
         private RoadGraph graph;
@@ -140,34 +102,27 @@ namespace TestMap
         private readonly List<StepItem> steps = new List<StepItem>();
         private readonly HashSet<string> routeTried = new HashSet<string>();   // khu vực đã thử tải tuyến thật trong lần chạy này
 
+        // Quyền admin
+        private bool adminLoggedIn;
+        private AdminForm adminForm;
+        private Action<double, double> pendingPick;      // đang chờ admin bấm một điểm trên bản đồ
+        private Action pendingCancel;
+        public event EventHandler DataReloaded;
+
         public Form1()
         {
-            Text = "TestMap - Gợi ý lộ trình xe buýt";
-            ClientSize = new Size(1300, 780);
-            MinimumSize = new Size(1200, 640);
-            StartPosition = FormStartPosition.CenterScreen;
-            Font = new Font("Segoe UI", 9f);
-            KeyPreview = true;
+            InitializeComponent();      // toàn bộ giao diện nằm trong Form1.Designer.cs
 
-            BuildUi();
+            InitMap();
+            foreach (Area a in Areas) cboArea.Items.Add(a);
+            cboArea.SelectedIndex = 0;
 
-            timer.Interval = 30;
-            timer.Tick += Timer_Tick;
-            busTimer.Interval = 30;
-            busTimer.Tick += BusTimer_Tick;
-            liveTimer.Interval = 80;
-            liveTimer.Tick += (s, e) => { mapCanvas.BusClock = liveWatch.Elapsed.TotalSeconds; mapCanvas.Invalidate(); };
-            Shown += Form1_Shown;
-            KeyDown += Form1_KeyDown;
+            SetMode(Mode.Bus);
         }
 
-        // =====================================================================
-        //  DỰNG GIAO DIỆN
-        // =====================================================================
-        private void BuildUi()
+        // Cấu hình bản đồ (thư viện GMap không cấu hình được trong Designer nên để ở code)
+        private void InitMap()
         {
-            // ----- Bản đồ -----
-            mapCanvas.Dock = DockStyle.Fill;
             mapCanvas.EmptyTileColor = MapCanvas.BackgroundColor;
             mapCanvas.ShowCenter = false;
             mapCanvas.DragButton = MouseButtons.Left;
@@ -175,392 +130,79 @@ namespace TestMap
             mapCanvas.MaxZoom = 19;
             mapCanvas.Zoom = 15;
             mapCanvas.MouseWheelZoomType = MouseWheelZoomType.MousePositionAndCenter;
-            mapCanvas.MouseClick += MapCanvas_MouseClick;
             mapCanvas.StopClicked += MapCanvas_StopClicked;
-            mapCanvas.Resize += (s, e) => LayoutMapButtons();
+            mapCanvas.MapClicked += MapCanvas_MapClicked;
             GMaps.Instance.Mode = AccessMode.ServerOnly;
             mapCanvas.MapProvider = new BlankMapProvider(MapCanvas.BackgroundColor);
-
-            StyleMapButton(btnZoomIn, "+");
-            StyleMapButton(btnZoomOut, "−");
-            btnZoomIn.Click += (s, e) => mapCanvas.Zoom = Math.Min(mapCanvas.MaxZoom, (int)mapCanvas.Zoom + 1);
-            btnZoomOut.Click += (s, e) => mapCanvas.Zoom = Math.Max(mapCanvas.MinZoom, (int)Math.Ceiling(mapCanvas.Zoom) - 1);
-            mapCanvas.Controls.Add(btnZoomIn);
-            mapCanvas.Controls.Add(btnZoomOut);
-
-            // ----- Thanh trên -----
-            var pnlTop = new Panel { Dock = DockStyle.Top, Height = 52, BackColor = Navy };
-            var flow = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                WrapContents = false,
-                Padding = new Padding(12, 10, 12, 0),
-                BackColor = Navy
-            };
-            pnlTop.Controls.Add(flow);
-
-            cboArea.DropDownStyle = ComboBoxStyle.DropDownList;
-            cboArea.Width = 180;
-            cboArea.Margin = new Padding(0, 3, 14, 0);
-            foreach (Area a in Areas) cboArea.Items.Add(a);
-            cboArea.SelectedIndex = 0;
-            cboArea.SelectionChangeCommitted += async (s, e) => await LoadArea(cboArea.SelectedIndex, false);
-
-            cboAlgo.DropDownStyle = ComboBoxStyle.DropDownList;
-            cboAlgo.Width = 90;
-            cboAlgo.Margin = new Padding(0, 3, 14, 0);
-            cboAlgo.Items.Add("Dijkstra");
-            cboAlgo.Items.Add("A*");
-            cboAlgo.SelectedIndex = 1;
-
-            chkStops.Text = "Hiện trạm";
-            chkStops.Checked = true;
-            chkStops.AutoSize = true;
-            chkStops.ForeColor = Color.Gainsboro;
-            chkStops.Margin = new Padding(0, 6, 10, 0);
-            chkStops.CheckedChanged += (s, e) => { mapCanvas.ShowStops = chkStops.Checked; mapCanvas.Invalidate(); };
-
-            chkLines.Text = "Hiện tuyến";
-            chkLines.Checked = true;
-            chkLines.AutoSize = true;
-            chkLines.ForeColor = Color.Gainsboro;
-            chkLines.Margin = new Padding(0, 6, 10, 0);
-            chkLines.CheckedChanged += (s, e) => ApplyView();
-
-            chkBuses.Text = "Xe chạy (mô phỏng)";
-            chkBuses.Checked = true;
-            chkBuses.AutoSize = true;
-            chkBuses.ForeColor = Color.Gainsboro;
-            chkBuses.Margin = new Padding(0, 6, 10, 0);
-            chkBuses.CheckedChanged += (s, e) => ApplyView();
-
-            chkSearch.Text = "Xem thuật toán";
-            chkSearch.AutoSize = true;
-            chkSearch.ForeColor = Color.Gainsboro;
-            chkSearch.Margin = new Padding(0, 6, 14, 0);
-
-            StyleButton(btnCompare, "So sánh", 76, Slate);
-            btnCompare.Margin = new Padding(0, 0, 8, 0);
-            btnCompare.Click += btnCompare_Click;
-            StyleButton(btnLoadLines, "Tải tuyến thật", 110, Slate);
-            btnLoadLines.Margin = new Padding(0, 0, 8, 0);
-            btnLoadLines.Click += async (s, e) => { if (graph != null && !busy) await DownloadLines(Areas[cboArea.SelectedIndex]); };
-            StyleButton(btnReload, "Tải lại dữ liệu", 116, Slate);
-            btnReload.Margin = new Padding(0, 0, 0, 0);
-            btnReload.Click += async (s, e) => await LoadArea(cboArea.SelectedIndex, true);
-
-            flow.Controls.Add(cboArea);
-            flow.Controls.Add(cboAlgo);
-            flow.Controls.Add(chkStops);
-            flow.Controls.Add(chkLines);
-            flow.Controls.Add(chkBuses);
-            flow.Controls.Add(chkSearch);
-            flow.Controls.Add(btnCompare);
-            flow.Controls.Add(btnLoadLines);
-            flow.Controls.Add(btnReload);
-
-            // ----- Thanh trạng thái dưới -----
-            lblInfo.Dock = DockStyle.Bottom;
-            lblInfo.Height = 30;
-            lblInfo.BackColor = Navy;
-            lblInfo.ForeColor = Color.FromArgb(203, 213, 225);
-            lblInfo.Padding = new Padding(12, 0, 12, 0);
-            lblInfo.TextAlign = ContentAlignment.MiddleLeft;
-            lblInfo.AutoEllipsis = true;
-            lblInfo.Text = "Đang khởi động...";
-
-            // ----- Bảng bên phải -----
-            var pnlSide = new Panel { Dock = DockStyle.Right, Width = 350, BackColor = PanelBack };
-
-            // Phần chọn điểm đi / đến
-            var pnlPlan = new Panel { Dock = DockStyle.Top, Height = 192, BackColor = PanelBack };
-            pnlPlan.Controls.Add(MakeLabel("LỘ TRÌNH", 16, 12, 270, 20, new Font("Segoe UI", 8.5f, FontStyle.Bold), Muted));
-            pnlPlan.Controls.Add(MakeLabel("A", 16, 40, 22, 24, new Font("Segoe UI", 11f, FontStyle.Bold), MapCanvas.StartColor));
-            pnlPlan.Controls.Add(MakeLabel("B", 16, 72, 22, 24, new Font("Segoe UI", 11f, FontStyle.Bold), MapCanvas.EndColor));
-
-            SetupStopCombo(cboFrom, 42, 38, true);
-            SetupStopCombo(cboTo, 42, 70, false);
-            pnlPlan.Controls.Add(cboFrom);
-            pnlPlan.Controls.Add(cboTo);
-
-            StyleButton(btnSwap, "⇅", 44, Color.FromArgb(226, 232, 240));
-            btnSwap.ForeColor = Slate;
-            btnSwap.Font = new Font("Segoe UI", 12f, FontStyle.Bold);
-            btnSwap.SetBounds(290, 38, 44, 56);
-            btnSwap.Click += btnSwap_Click;
-            pnlPlan.Controls.Add(btnSwap);
-
-            cboRides.DropDownStyle = ComboBoxStyle.DropDownList;
-            cboRides.SetBounds(42, 106, 150, 24);
-            cboRides.Font = new Font("Segoe UI", 9.5f);
-            cboRides.Items.Add("Tối đa 1 chuyến");
-            cboRides.Items.Add("Tối đa 2 chuyến");
-            cboRides.Items.Add("Tối đa 3 chuyến");
-            cboRides.SelectedIndex = 1;
-            cboRides.SelectedIndexChanged += (s, e) =>
-            {
-                if (graph != null && !busy && mapCanvas.StartNode >= 0 && mapCanvas.EndNode >= 0) ComputeItineraries();
-            };
-            pnlPlan.Controls.Add(MakeLabel("Đổi xe", 200, 109, 134, 20, new Font("Segoe UI", 8.5f), Muted));
-            pnlPlan.Controls.Add(cboRides);
-
-            StyleButton(btnRun, "Tìm đường", 190, MapCanvas.RouteColor);
-            btnRun.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
-            btnRun.SetBounds(16, 144, 200, 36);
-            btnRun.Click += btnRun_Click;
-            StyleButton(btnReset, "Xóa", 100, Color.FromArgb(226, 232, 240));
-            btnReset.ForeColor = Slate;
-            btnReset.SetBounds(224, 144, 110, 36);
-            btnReset.Click += btnReset_Click;
-            pnlPlan.Controls.Add(btnRun);
-            pnlPlan.Controls.Add(btnReset);
-
-            // Ba tab: gợi ý xe buýt / đường ngắn nhất / các tuyến
-            var pnlTabs = new Panel { Dock = DockStyle.Top, Height = 46, BackColor = PanelBack };
-            StyleTab(btnTabBus, "Gợi ý xe buýt", 16);
-            StyleTab(btnTabShortest, "Ngắn nhất", 122);
-            StyleTab(btnTabLines, "Các tuyến", 228);
-            btnTabBus.Click += (s, e) => SetMode(Mode.Bus);
-            btnTabShortest.Click += (s, e) => SetMode(Mode.Shortest);
-            btnTabLines.Click += (s, e) => SetMode(Mode.Lines);
-            pnlTabs.Controls.Add(btnTabBus);
-            pnlTabs.Controls.Add(btnTabShortest);
-            pnlTabs.Controls.Add(btnTabLines);
-
-            BuildBusPanel();
-            BuildShortestPanel();
-            BuildLinesPanel();
-
-            // Thứ tự thêm quyết định thứ tự dock: cái thêm sau được dock trước
-            pnlSide.Controls.Add(pnlBus);
-            pnlSide.Controls.Add(pnlShortest);
-            pnlSide.Controls.Add(pnlLines);
-            pnlSide.Controls.Add(pnlTabs);
-            pnlSide.Controls.Add(pnlPlan);
-
-            Controls.Add(mapCanvas);
-            Controls.Add(pnlSide);
-            Controls.Add(lblInfo);
-            Controls.Add(pnlTop);
-
-            SetMode(Mode.Bus);
         }
 
-        // Tab 1: các cách đi bằng xe buýt (thẻ gợi ý) + chi tiết từng bước
-        private void BuildBusPanel()
+        // =====================================================================
+        //  SỰ KIỆN CỦA CÁC ĐIỀU KHIỂN (được nối trong Form1.Designer.cs)
+        // =====================================================================
+        private void LiveTimer_Tick(object sender, EventArgs e)
         {
-            pnlBus.Dock = DockStyle.Fill;
-            pnlBus.BackColor = ListBack;
-
-            lstItins.Dock = DockStyle.Fill;
-            lstItins.BorderStyle = BorderStyle.None;
-            lstItins.IntegralHeight = false;
-            lstItins.BackColor = ListBack;
-            lstItins.DrawMode = DrawMode.OwnerDrawFixed;
-            lstItins.ItemHeight = 128;
-            lstItins.DrawItem += lstItins_DrawItem;
-            lstItins.SelectedIndexChanged += lstItins_SelectedIndexChanged;
-
-            var pnlSteps = new Panel { Dock = DockStyle.Bottom, Height = 200, BackColor = PanelBack };
-            lstSteps.Dock = DockStyle.Fill;
-            lstSteps.BorderStyle = BorderStyle.None;
-            lstSteps.IntegralHeight = false;
-            lstSteps.BackColor = PanelBack;
-            lstSteps.DrawMode = DrawMode.OwnerDrawFixed;
-            lstSteps.ItemHeight = 50;
-            lstSteps.DrawItem += lstSteps_DrawItem;
-            lstSteps.SelectionMode = SelectionMode.None;
-            var stepsHeader = new Panel { Dock = DockStyle.Top, Height = 28, BackColor = Color.FromArgb(226, 232, 240) };
-            lnkCopyBus.Text = "Sao chép";
-            lnkCopyBus.Dock = DockStyle.Right;
-            lnkCopyBus.Width = 78;
-            lnkCopyBus.TextAlign = ContentAlignment.MiddleCenter;
-            lnkCopyBus.LinkColor = MapCanvas.RouteColor;
-            lnkCopyBus.ActiveLinkColor = Navy;
-            lnkCopyBus.LinkClicked += (s, e) => CopyItinerary();
-            stepsHeader.Controls.Add(lnkCopyBus);
-            stepsHeader.Controls.Add(new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "  CHI TIẾT CÁCH ĐI",
-                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
-                ForeColor = Slate,
-                TextAlign = ContentAlignment.MiddleLeft
-            });
-            pnlSteps.Controls.Add(lstSteps);
-            pnlSteps.Controls.Add(stepsHeader);
-
-            lblItinMsg.Dock = DockStyle.Top;
-            lblItinMsg.Height = 50;
-            lblItinMsg.Padding = new Padding(16, 8, 16, 0);
-            lblItinMsg.ForeColor = Muted;
-            lblItinMsg.BackColor = ListBack;
-            lblItinMsg.Text = "Chọn điểm đi và điểm đến (bấm vào trạm trên bản đồ) để xem các cách đi bằng xe buýt.";
-
-            StyleDemoBanner(lblDemoBus);
-
-            pnlBus.Controls.Add(lstItins);
-            pnlBus.Controls.Add(pnlSteps);
-            pnlBus.Controls.Add(lblItinMsg);
-            pnlBus.Controls.Add(lblDemoBus);
+            mapCanvas.BusClock = liveWatch.Elapsed.TotalSeconds;
+            mapCanvas.Invalidate();
         }
 
-        // Tab 2: đường ngắn nhất theo đường bộ (Dijkstra / A*)
-        private void BuildShortestPanel()
+        private void btnZoomIn_Click(object sender, EventArgs e)
         {
-            pnlShortest.Dock = DockStyle.Fill;
-            pnlShortest.BackColor = PanelBack;
-
-            var pnlStats = new Panel { Dock = DockStyle.Top, Height = 142, BackColor = PanelBack };
-            lblDist = StatBox(pnlStats, 16, "Quãng đường");
-            lblTime = StatBox(pnlStats, 126, "Thời gian");
-            lblStopCount = StatBox(pnlStats, 236, "Số trạm");
-            lblVisited = MakeLabel("", 16, 66, 320, 20, new Font("Segoe UI", 8.5f), Muted);
-            pnlStats.Controls.Add(lblVisited);
-            StyleButton(btnBus, "► Chạy thử", 130, Slate);
-            btnBus.SetBounds(16, 96, 130, 34);
-            btnBus.Click += btnBus_Click;
-            pnlStats.Controls.Add(btnBus);
-
-            var pnlListTitle = new Panel { Dock = DockStyle.Top, Height = 30, BackColor = Color.FromArgb(226, 232, 240) };
-            lnkCopy.Text = "Sao chép";
-            lnkCopy.Dock = DockStyle.Right;
-            lnkCopy.Width = 78;
-            lnkCopy.TextAlign = ContentAlignment.MiddleCenter;
-            lnkCopy.LinkColor = MapCanvas.RouteColor;
-            lnkCopy.ActiveLinkColor = Navy;
-            lnkCopy.LinkClicked += (s, e) => CopyRoute();
-            pnlListTitle.Controls.Add(lnkCopy);
-            pnlListTitle.Controls.Add(new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "  CÁC TRẠM ĐI QUA",
-                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
-                ForeColor = Slate,
-                TextAlign = ContentAlignment.MiddleLeft
-            });
-
-            lstStops.Dock = DockStyle.Fill;
-            lstStops.BorderStyle = BorderStyle.None;
-            lstStops.IntegralHeight = false;
-            lstStops.BackColor = PanelBack;
-            lstStops.DrawMode = DrawMode.OwnerDrawFixed;
-            lstStops.ItemHeight = 46;
-            lstStops.DrawItem += lstStops_DrawItem;
-            lstStops.SelectedIndexChanged += lstStops_SelectedIndexChanged;
-
-            pnlShortest.Controls.Add(lstStops);
-            pnlShortest.Controls.Add(pnlListTitle);
-            pnlShortest.Controls.Add(pnlStats);
+            mapCanvas.Zoom = Math.Min(mapCanvas.MaxZoom, (int)mapCanvas.Zoom + 1);
         }
 
-        // Tab 3: danh sách các tuyến xe buýt
-        private void BuildLinesPanel()
+        private void btnZoomOut_Click(object sender, EventArgs e)
         {
-            pnlLines.Dock = DockStyle.Fill;
-            pnlLines.BackColor = ListBack;
-
-            lstLines.Dock = DockStyle.Fill;
-            lstLines.BorderStyle = BorderStyle.None;
-            lstLines.IntegralHeight = false;
-            lstLines.BackColor = ListBack;
-            lstLines.DrawMode = DrawMode.OwnerDrawFixed;
-            lstLines.ItemHeight = 66;
-            lstLines.DrawItem += lstLines_DrawItem;
-            lstLines.SelectedIndexChanged += lstLines_SelectedIndexChanged;
-
-            StyleDemoBanner(lblDemoLines);
-            pnlLines.Controls.Add(lstLines);
-            pnlLines.Controls.Add(lblDemoLines);
+            mapCanvas.Zoom = Math.Max(mapCanvas.MinZoom, (int)Math.Ceiling(mapCanvas.Zoom) - 1);
         }
 
-        // Dải cảnh báo vàng: đang dùng tuyến demo, không phải tuyến thật
-        private static void StyleDemoBanner(Label l)
+        private async void cboArea_SelectionChangeCommitted(object sender, EventArgs e)
         {
-            l.Dock = DockStyle.Top;
-            l.Height = 58;
-            l.Padding = new Padding(14, 8, 14, 6);
-            l.BackColor = Color.FromArgb(254, 243, 199);
-            l.ForeColor = Color.FromArgb(146, 64, 14);
-            l.Font = new Font("Segoe UI", 8.5f);
-            l.Text = "Đang dùng tuyến DEMO (tự tạo, số tuyến D1, D2...). Bấm \"Tải tuyến thật\" ở thanh trên để lấy tuyến xe buýt thật từ OpenStreetMap.";
-            l.Visible = false;
+            await LoadArea(cboArea.SelectedIndex, false);
         }
 
-        private void SetupStopCombo(ComboBox c, int x, int y, bool isStart)
+        private void chkStops_CheckedChanged(object sender, EventArgs e)
         {
-            c.SetBounds(x, y, 242, 24);
-            c.DropDownStyle = ComboBoxStyle.DropDown;
-            c.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
-            c.AutoCompleteSource = AutoCompleteSource.ListItems;
-            c.Font = new Font("Segoe UI", 9.5f);
-            c.DropDownHeight = 320;
-            c.SelectedIndexChanged += (s, e) => StopComboChanged(isStart);
+            mapCanvas.ShowStops = chkStops.Checked;
+            mapCanvas.Invalidate();
         }
 
-        private static void StyleButton(Button b, string text, int width, Color back)
+        // "Hiện tuyến" và "Xe chạy"
+        private void chkView_CheckedChanged(object sender, EventArgs e)
         {
-            b.Text = text;
-            b.Width = width;
-            b.Height = 32;
-            b.Margin = new Padding(0, 0, 8, 0);
-            b.FlatStyle = FlatStyle.Flat;
-            b.FlatAppearance.BorderSize = 0;
-            b.BackColor = back;
-            b.ForeColor = Color.White;
-            b.Cursor = Cursors.Hand;
-            b.UseVisualStyleBackColor = false;
+            ApplyView();
         }
 
-        private static void StyleTab(Button b, string text, int x)
+        private async void btnLoadLines_Click(object sender, EventArgs e)
         {
-            b.Text = text;
-            b.SetBounds(x, 8, 100, 30);
-            b.FlatStyle = FlatStyle.Flat;
-            b.FlatAppearance.BorderSize = 0;
-            b.Font = new Font("Segoe UI", 8.75f, FontStyle.Bold);
-            b.Cursor = Cursors.Hand;
-            b.UseVisualStyleBackColor = false;
+            if (graph != null && !busy) await DownloadLines(Areas[cboArea.SelectedIndex]);
         }
 
-        private static void StyleMapButton(Button b, string text)
+        private async void btnReload_Click(object sender, EventArgs e)
         {
-            b.Text = text;
-            b.Size = new Size(34, 34);
-            b.FlatStyle = FlatStyle.Flat;
-            b.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
-            b.FlatAppearance.BorderSize = 1;
-            b.BackColor = Color.White;
-            b.ForeColor = Slate;
-            b.Font = new Font("Segoe UI", 13f, FontStyle.Bold);
-            b.Cursor = Cursors.Hand;
-            b.UseVisualStyleBackColor = false;
-            b.TabStop = false;
+            await LoadArea(cboArea.SelectedIndex, true);
         }
 
-        private void LayoutMapButtons()
+        private void cboFrom_SelectedIndexChanged(object sender, EventArgs e)
         {
-            int x = mapCanvas.Width - 34 - 14;
-            btnZoomIn.Location = new Point(x, mapCanvas.Height - 34 * 2 - 14 - 6);
-            btnZoomOut.Location = new Point(x, mapCanvas.Height - 34 - 14);
+            StopComboChanged(true);
         }
 
-        private static Label MakeLabel(string text, int x, int y, int w, int h, Font font, Color color)
+        private void cboTo_SelectedIndexChanged(object sender, EventArgs e)
         {
-            var l = new Label { Text = text, Font = font, ForeColor = color, AutoSize = false };
-            l.SetBounds(x, y, w, h);
-            return l;
+            StopComboChanged(false);
         }
 
-        // Ô thống kê: số to ở trên, chú thích nhỏ ở dưới. Trả về nhãn số.
-        private static Label StatBox(Panel parent, int x, string caption)
+        private void cboRides_SelectedIndexChanged(object sender, EventArgs e)
         {
-            var value = MakeLabel("—", x, 10, 104, 32, new Font("Segoe UI", 15f, FontStyle.Bold), Navy);
-            var cap = MakeLabel(caption, x, 42, 104, 20, new Font("Segoe UI", 8.5f), Muted);
-            parent.Controls.Add(value);
-            parent.Controls.Add(cap);
-            return value;
+            if (graph != null && !busy && mapCanvas.StartNode >= 0 && mapCanvas.EndNode >= 0) ComputeItineraries();
         }
+
+        private void btnTabBus_Click(object sender, EventArgs e) { SetMode(Mode.Bus); }
+        private void btnTabShortest_Click(object sender, EventArgs e) { SetMode(Mode.Shortest); }
+        private void btnTabLines_Click(object sender, EventArgs e) { SetMode(Mode.Lines); }
+
+        private void lnkCopyBus_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) { CopyItinerary(); }
+        private void lnkCopy_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) { CopyRoute(); }
 
         // =====================================================================
         //  CHẾ ĐỘ HIỂN THỊ (3 tab)
@@ -613,11 +255,10 @@ namespace TestMap
         // =====================================================================
         private async void Form1_Shown(object sender, EventArgs e)
         {
-            LayoutMapButtons();
             await LoadArea(cboArea.SelectedIndex, false);
         }
 
-        private string DataRoot
+        public string DataRoot
         {
             get { return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data"); }
         }
@@ -695,18 +336,22 @@ namespace TestMap
 
                 // Tuyến xe buýt: dùng tuyến thật đã lưu; chưa có thì tạo tuyến demo
                 lblInfo.Text = "Đang dựng các tuyến xe buýt...";
+                string adminPath = Path.Combine(dir, "lines_admin.csv");
                 List<BusLine> ls = null;
                 bool demo = false;
                 try
                 {
                     ls = await Task.Run(() =>
                     {
+                        // ưu tiên tuyến do admin chỉnh sửa, rồi tới tuyến thật đã tải về
+                        try { if (File.Exists(adminPath)) return AdminData.LoadLines(g, adminPath); } catch { }
                         if (!File.Exists(routesPath)) return null;
                         try { return BusLines.Load(g, routesPath); } catch { return null; }
                     });
                 }
                 catch { ls = null; }
-                if (ls == null || ls.Count == 0)
+                bool adminFile = ls != null && File.Exists(adminPath);
+                if (!adminFile && (ls == null || ls.Count == 0))
                 {
                     ls = await Task.Run(() => BusLines.Demo(g));
                     demo = true;
@@ -814,6 +459,14 @@ namespace TestMap
                 return;
             }
 
+            string adminFilePath = Path.Combine(Path.GetDirectoryName(path), "lines_admin.csv");
+            if (File.Exists(adminFilePath))
+            {
+                lblInfo.Text = "Đã tải " + count + " tuyến thật nhưng đang dùng tuyến do admin chỉnh sửa. " +
+                               "Vào Quản trị > Cập nhật dữ liệu > \"Khôi phục tuyến gốc\" để dùng tuyến vừa tải.";
+                return;
+            }
+
             List<BusLine> ls;
             try { ls = await Task.Run(() => BusLines.Load(g0, path)); }
             catch (Exception ex) { lblInfo.Text = "Không đọc được tuyến xe buýt: " + ex.Message; return; }
@@ -904,14 +557,42 @@ namespace TestMap
         // Bấm vào một trạm: lần lượt chọn điểm đi, điểm đến. Chọn xong điểm đến thì tự tìm đường.
         private void MapCanvas_StopClicked(int stop)
         {
+            if (pendingPick != null)                        // admin đang chọn vị trí: lấy luôn vị trí trạm vừa bấm
+            {
+                CompletePick(graph.Stops[stop].RawLat, graph.Stops[stop].RawLng);
+                return;
+            }
             if (graph == null || busy) return;
             PickPoint(stop, graph.Stops[stop].Node);
         }
 
         // Chuột phải: chọn trạm gần nhất (hoặc giao lộ gần nhất nếu khu vực không có trạm)
+        private void MapCanvas_MapClicked(double lat, double lng)
+        {
+            if (pendingPick != null) CompletePick(lat, lng);
+        }
+
+        private void CompletePick(double lat, double lng)
+        {
+            Action<double, double> cb = pendingPick;
+            pendingPick = null;
+            pendingCancel = null;
+            lblInfo.Text = "Đã chọn vị trí.";
+            if (cb != null) cb(lat, lng);
+        }
+
+        private void CancelPick()
+        {
+            Action cancel = pendingCancel;
+            pendingPick = null;
+            pendingCancel = null;
+            lblInfo.Text = "Đã hủy chọn vị trí.";
+            if (cancel != null) cancel();
+        }
+
         private void MapCanvas_MouseClick(object sender, MouseEventArgs e)
         {
-            if (e.Button != MouseButtons.Right || graph == null || busy) return;
+            if (e.Button != MouseButtons.Right || graph == null || busy || pendingPick != null) return;
 
             PointLatLng p = mapCanvas.FromLocalToLatLng(e.X, e.Y);
             int stop = graph.Stops.Count > 0 ? graph.NearestStop(p.Lat, p.Lng) : -1;
@@ -1186,6 +867,12 @@ namespace TestMap
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
+            if (e.KeyCode == Keys.Escape && pendingPick != null)
+            {
+                CancelPick();
+                e.Handled = true;
+                return;
+            }
             if (e.KeyCode == Keys.Escape && !cboFrom.DroppedDown && !cboTo.DroppedDown && !busy)
             {
                 ClearAll();
@@ -1271,7 +958,7 @@ namespace TestMap
                 FitToLegs(mapCanvas.ItinLegs);
                 lblInfo.Text = "Gợi ý: khoảng " + Minutes(it.Seconds) + " phút, " + it.Rides + " chuyến" +
                                (it.Transfers > 0 ? " (đổi tuyến " + it.Transfers + " lần)" : "") +
-                               ". Giờ xe và giá vé là ước tính: giả định xe 10 phút/chuyến, " + (TransitNet.FarePerRide / 1000) + "k/chuyến." +
+                               ". Giờ chờ xe tính theo tần suất và giá vé của từng tuyến (admin chỉnh được); thời gian là ước tính." +
                                (usingDemo ? " Đang dùng tuyến demo." : "");
             }
         }
@@ -1286,7 +973,8 @@ namespace TestMap
             return Math.Max(1, (int)Math.Round(seconds / 60.0));
         }
 
-        // Thẻ gợi ý: số tuyến, giá vé, thời gian, đi bộ / đi xe bao xa, trạm đón xe
+        // Thẻ gợi ý: số tuyến, giá vé, thời gian. Nếu phải đi nhiều chuyến thì các chuyến kế tiếp hiện CẠNH NHAU ngay trên thẻ
+        // (mỗi chuyến một ô: tuyến nào, lên ở đâu, xuống ở đâu, đi mấy trạm, chờ bao lâu).
         private void lstItins_DrawItem(object sender, DrawItemEventArgs e)
         {
             if (e.Index < 0 || e.Index >= itins.Count) return;
@@ -1306,15 +994,15 @@ namespace TestMap
 
             // Thời gian bên phải: số to màu xanh + chữ "phút"
             int timeX = card.Right - 62;
-            TextRenderer.DrawText(g, Minutes(it.Seconds).ToString(), BigTimeFont, new Rectangle(timeX, card.Y + 8, 52, 28), Green,
+            TextRenderer.DrawText(g, Minutes(it.Seconds).ToString(), BigTimeFont, new Rectangle(timeX, card.Y + 6, 52, 26), Green,
                                   TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
-            TextRenderer.DrawText(g, "phút", ListSubFont, new Rectangle(timeX, card.Y + 34, 52, 16), Green,
+            TextRenderer.DrawText(g, "phút", ListSubFont, new Rectangle(timeX, card.Y + 30, 52, 16), Green,
                                   TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding);
 
-            // Giá vé ước tính: viên thuốc có viền
-            string price = (it.FareVnd / 1000) + "k VNĐ";
+            // Giá vé: viên thuốc có viền
+            string price = (it.FareVnd / 1000.0).ToString("0.#") + "k VNĐ";
             int pw = TextRenderer.MeasureText(price, InfoFont, new Size(1000, 100), TextFormatFlags.NoPadding).Width + 22;
-            var pill = new Rectangle(timeX - 10 - pw, card.Y + 12, pw, 28);
+            var pill = new Rectangle(timeX - 10 - pw, card.Y + 10, pw, 28);
             using (GraphicsPath pp = RoundPath(pill, 14))
             using (var pen = new Pen(Color.FromArgb(203, 213, 225), 1.5f))
                 g.DrawPath(pen, pp);
@@ -1322,13 +1010,14 @@ namespace TestMap
                                   TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
 
             // Các tuyến cần đi: ô màu có số tuyến, cách nhau bằng chấm tròn
-            int x = card.X + 12, y = card.Y + 12, limit = pill.X - 10;
-            bool first = true;
-            foreach (TransitLeg leg in it.Legs)
+            var rides = new List<TransitLeg>();
+            foreach (TransitLeg leg in it.Legs) if (!leg.Walk) rides.Add(leg);
+
+            int x = card.X + 12, y = card.Y + 10, limit = pill.X - 10;
+            for (int i = 0; i < rides.Count; i++)
             {
-                if (leg.Walk) continue;
-                int cw = ChipWidth(leg.Line.Ref);
-                if (!first)
+                int cw = ChipWidth(rides[i].Line.Ref);
+                if (i > 0)
                 {
                     using (var dot = new SolidBrush(Color.FromArgb(148, 163, 184))) g.FillEllipse(dot, x + 3, y + 10, 7, 7);
                     x += 16;
@@ -1338,13 +1027,40 @@ namespace TestMap
                     TextRenderer.DrawText(g, "…", ChipFont, new Rectangle(x, y, 20, 26), Muted, TextFormatFlags.NoPadding);
                     break;
                 }
-                DrawChip(g, new Rectangle(x, y, cw, 26), leg.Line.Color, leg.Line.Ref);
+                DrawChip(g, new Rectangle(x, y, cw, 26), rides[i].Line.Color, rides[i].Line.Ref);
                 x += cw + 6;
-                first = false;
             }
 
-            // Đi bộ bao xa | đi xe bao xa
-            int ry = card.Y + 52;
+            // Mỗi chuyến một ô, xếp cạnh nhau
+            int by = card.Y + 46, bh = 72, gap = 16, inner = card.Width - 24;
+            int n = Math.Max(1, rides.Count);
+            int bw = (inner - gap * (n - 1)) / n;
+            for (int i = 0; i < rides.Count; i++)
+            {
+                TransitLeg r = rides[i];
+                var blk = new Rectangle(card.X + 12 + i * (bw + gap), by, bw, bh);
+                using (GraphicsPath bp = RoundPath(blk, 8))
+                using (var bb = new SolidBrush(Color.FromArgb(241, 245, 249)))
+                    g.FillPath(bb, bp);
+                using (var bar = new SolidBrush(r.Line.Color))
+                    g.FillRectangle(bar, blk.X, blk.Y + 8, 4, blk.Height - 16);
+                if (i > 0)
+                    TextRenderer.DrawText(g, "›", BigTimeFont, new Rectangle(blk.X - gap, by, gap, bh), Muted,
+                                          TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+
+                var tr = new Rectangle(blk.X + 12, blk.Y + 4, blk.Width - 16, 17);
+                const TextFormatFlags fl = TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
+                TextRenderer.DrawText(g, "Chuyến " + (i + 1) + "  ·  Tuyến " + r.Line.Ref, SmallBoldFont, tr, Navy, fl);
+                tr.Y += 17;
+                TextRenderer.DrawText(g, "Lên: " + StopName(r.FromStop), SmallFont, tr, Slate, fl);
+                tr.Y += 16;
+                TextRenderer.DrawText(g, "Xuống: " + StopName(r.ToStop), SmallFont, tr, Slate, fl);
+                tr.Y += 16;
+                TextRenderer.DrawText(g, r.StopCount + " trạm · " + FormatDistance(r.Meters) + " · chờ ~" + Math.Max(1, r.Line.HeadwayMin / 2) + "p", SmallFont, tr, Muted, fl);
+            }
+
+            // Tổng đi bộ | tổng đi xe
+            int ry = by + bh + 10;
             DrawWalkIcon(g, new Rectangle(card.X + 12, ry, 16, 18), Muted);
             string walk = Math.Round(it.WalkMeters) + " m";
             TextRenderer.DrawText(g, walk, InfoFont, new Point(card.X + 32, ry), Muted, TextFormatFlags.NoPadding);
@@ -1352,15 +1068,8 @@ namespace TestMap
             using (var sep = new Pen(Color.FromArgb(226, 232, 240), 1.5f)) g.DrawLine(sep, sepX, ry + 1, sepX, ry + 17);
             DrawBusIcon(g, new Rectangle(sepX + 14, ry + 1, 16, 16), Muted, Color.White);
             TextRenderer.DrawText(g, FormatDistance(it.RideMeters), InfoFont, new Point(sepX + 35, ry), Muted, TextFormatFlags.NoPadding);
-
-            // Gợi ý trạm đón xe
-            var note = new Rectangle(card.X + 12, card.Y + 78, card.Width - 24, 30);
-            using (GraphicsPath np = RoundPath(note, 6))
-            using (var nb = new SolidBrush(Color.FromArgb(241, 245, 249)))
-                g.FillPath(nb, np);
-            TextRenderer.DrawText(g, "Đón xe tại trạm " + StopName(it.FirstBoardStop) + ".", InfoFont,
-                                  new Rectangle(note.X + 10, note.Y, note.Width - 16, note.Height), Muted,
-                                  TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+            if (it.Rides > 1)
+                TextRenderer.DrawText(g, "đổi tuyến " + it.Transfers + " lần", InfoFont, new Point(card.Right - 130, ry), Muted, TextFormatFlags.NoPadding);
         }
 
         private void lstSteps_DrawItem(object sender, DrawItemEventArgs e)
@@ -1402,6 +1111,81 @@ namespace TestMap
         }
 
         // =====================================================================
+        //  QUYỀN ADMIN
+        // =====================================================================
+        private void btnAdmin_Click(object sender, EventArgs e)
+        {
+            if (graph == null || busy) return;
+            if (adminForm != null && !adminForm.IsDisposed)
+            {
+                adminForm.Show();
+                adminForm.Activate();
+                return;
+            }
+            if (!adminLoggedIn)
+            {
+                using (var login = new LoginForm(DataRoot))
+                    if (login.ShowDialog(this) != DialogResult.OK) return;
+                adminLoggedIn = true;
+                btnAdmin.Text = "Quản trị ✓";
+            }
+            adminForm = new AdminForm(this);
+            adminForm.Show(this);
+        }
+
+        public RoadGraph Graph { get { return graph; } }
+        public List<BusLine> Lines { get { return lines; } }
+        public string AreaName { get { return Areas[cboArea.SelectedIndex].Name; } }
+        public string DataDir { get { return Path.Combine(DataRoot, Areas[cboArea.SelectedIndex].Key); } }
+        public bool HasAdminLines { get { return File.Exists(Path.Combine(DataDir, "lines_admin.csv")); } }
+
+        public void RequestMapPick(string prompt, Action<double, double> onPicked, Action onCancel)
+        {
+            pendingPick = onPicked;
+            pendingCancel = onCancel;
+            lblInfo.Text = prompt + "  (Esc để hủy)";
+            Activate();
+        }
+
+        public void PreviewLine(BusLine line)
+        {
+            int i = lines.IndexOf(line);
+            if (i < 0) return;
+            SetMode(Mode.Lines);
+            lstLines.SelectedIndex = i + 1;
+        }
+
+        public void ApplyChanges() { var ignored = ReloadCurrent(); }
+        public void ReloadFromDisk() { var ignored = ReloadCurrent(); }
+
+        public void RestoreOriginalLines()
+        {
+            try { File.Delete(Path.Combine(DataDir, "lines_admin.csv")); }
+            catch (Exception ex) { lblInfo.Text = "Không xóa được file chỉnh sửa: " + ex.Message; return; }
+            var ignored = ReloadCurrent();
+        }
+
+        public void DownloadRealLines()
+        {
+            if (!busy) { var ignored = DownloadLines(Areas[cboArea.SelectedIndex]); }
+        }
+
+        public void Logout()
+        {
+            adminLoggedIn = false;
+            btnAdmin.Text = "Quản trị";
+            lblInfo.Text = "Đã đăng xuất quyền quản trị.";
+        }
+
+        // Nạp lại khu vực đang mở từ file rồi báo cho màn hình quản trị
+        private async Task ReloadCurrent()
+        {
+            await LoadArea(cboArea.SelectedIndex, false);
+            EventHandler h = DataReloaded;
+            if (h != null) h(this, EventArgs.Empty);
+        }
+
+        // =====================================================================
         //  DANH SÁCH CÁC TUYẾN
         // =====================================================================
         private void lstLines_DrawItem(object sender, DrawItemEventArgs e)
@@ -1432,7 +1216,7 @@ namespace TestMap
             BusLine l = lines[e.Index - 1];
             DrawChip(g, new Rectangle(card.X + 12, card.Y + 14, Math.Max(70, ChipWidth(l.Ref)), 26), l.Color, l.Ref);
             TextRenderer.DrawText(g, l.Title(graph), ListNameFont, textRect, Navy, TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
-            TextRenderer.DrawText(g, l.Stops.Count + " trạm  ·  " + FormatDistance(l.Length) + (l.Demo ? "  ·  demo" : ""), ListSubFont, subRect, Muted,
+            TextRenderer.DrawText(g, l.Stops.Count + " trạm  ·  " + FormatDistance(l.Length) + "  ·  " + (l.Fare / 1000.0).ToString("0.#") + "k  ·  " + l.HeadwayMin + " phút/chuyến" + (l.Demo ? "  ·  demo" : ""), ListSubFont, subRect, Muted,
                                   TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
         }
 

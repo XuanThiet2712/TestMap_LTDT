@@ -49,6 +49,9 @@ namespace TestMap.Mapping
         // Bấm chuột trái (không kéo) lên một trạm
         public event Action<int> StopClicked;
 
+        // Bấm chuột trái (không kéo) lên chỗ không phải trạm: (vĩ độ, kinh độ). Dùng cho chế độ chọn điểm của admin.
+        public event Action<double, double> MapClicked;
+
         // ----- Bảng màu -----
         public static readonly Color BackgroundColor = Color.FromArgb(241, 244, 248);
         private static readonly Color RoadCasing = Color.FromArgb(224, 229, 236);
@@ -592,11 +595,16 @@ namespace TestMap.Mapping
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
-            if (e.Button != MouseButtons.Left || RoadNet == null || StopClicked == null) return;
+            if (e.Button != MouseButtons.Left || RoadNet == null) return;
             int dx = e.X - downPoint.X, dy = e.Y - downPoint.Y;
             if (dx * dx + dy * dy > 25) return;             // đã kéo bản đồ, không phải bấm
             int s = StopAt(e.X, e.Y, 12);
-            if (s >= 0) StopClicked(s);
+            if (s >= 0) { if (StopClicked != null) StopClicked(s); }
+            else if (MapClicked != null)
+            {
+                PointLatLng p = FromLocalToLatLng(e.X, e.Y);
+                MapClicked(p.Lat, p.Lng);
+            }
         }
 
         // =====================================================================

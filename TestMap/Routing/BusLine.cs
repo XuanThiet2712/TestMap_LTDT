@@ -10,7 +10,11 @@ namespace TestMap.Routing
         public string Ref = "";            // số tuyến, ví dụ "06"
         public string Name = "";
         public Color Color = Color.FromArgb(37, 99, 235);
+        public bool CustomColor;           // true: màu do admin chọn, false: tự gán theo số tuyến
         public bool Demo;                  // tuyến tự tạo để demo, không phải tuyến thật
+        public int Fare = 7000;            // giá vé một chuyến (đồng)
+        public int HeadwayMin = 10;        // cứ bao nhiêu phút có một chuyến (để ước tính thời gian chờ)
+        public string Hours = "";          // giờ hoạt động, ví dụ "05:00 - 21:00" (chỉ hiển thị)
         public double Phase;               // 0..1, lệch pha để các tuyến không có xe xuất phát cùng lúc
 
         public List<int> Stops = new List<int>();            // chỉ số trạm trong RoadGraph.Stops, theo thứ tự

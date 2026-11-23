@@ -134,12 +134,12 @@ namespace TestMap.Routing
                 }
                 if (line.Stops.Count >= 2) res.Add(line);
             }
-            Finish(g, res);
+            Prepare(g, res);
             return res;
         }
 
         // Trạm gần điểm (lat, lng) nhất, so với cả vị trí gốc lẫn vị trí đã gắn lên đường; -1 nếu quá xa
-        private static int MatchStop(RoadGraph g, double lat, double lng)
+        internal static int MatchStop(RoadGraph g, double lat, double lng)
         {
             double k = Math.Cos(lat * Math.PI / 180) * 111320.0, m = 111320.0;
             int best = -1;
@@ -197,24 +197,27 @@ namespace TestMap.Routing
                     if (line.Stops.Count >= 3) res.Add(line);
                 }
             }
-            Finish(g, res);
+            Prepare(g, res);
             return res;
         }
 
-        // Gán màu theo số tuyến, lệch pha, dựng đường chạy
-        private static void Finish(RoadGraph g, List<BusLine> lines)
+        // Gán màu theo số tuyến (trừ tuyến admin đã chọn màu riêng), lệch pha, dựng đường chạy
+        public static void Prepare(RoadGraph g, List<BusLine> lines)
         {
             var colorOf = new Dictionary<string, Color>();
             for (int i = 0; i < lines.Count; i++)
             {
                 BusLine l = lines[i];
-                Color c;
-                if (!colorOf.TryGetValue(l.Ref, out c))
+                if (!l.CustomColor)
                 {
-                    c = Palette[colorOf.Count % Palette.Length];
-                    colorOf[l.Ref] = c;
+                    Color c;
+                    if (!colorOf.TryGetValue(l.Ref, out c))
+                    {
+                        c = Palette[colorOf.Count % Palette.Length];
+                        colorOf[l.Ref] = c;
+                    }
+                    l.Color = c;
                 }
-                l.Color = c;
                 l.Phase = (i * 0.37) % 1.0;
                 l.BuildPath(g);
             }

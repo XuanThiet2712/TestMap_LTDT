@@ -76,14 +76,12 @@ namespace TestMap.Routing
     // Mạng giao thông công cộng: tuyến xe + các trạm đi bộ được sang nhau. Dựng một lần cho mỗi bộ tuyến.
     public class TransitNet
     {
-        // Các giả định (dữ liệu OpenStreetMap không có lịch chạy hay giá vé)
-        public const double HeadwaySeconds = 600;    // xe 10 phút một chuyến -> chờ trung bình 5 phút
+        // Các giả định chung. Giá vé và tần suất xe riêng của từng tuyến nằm trong BusLine (admin chỉnh được).
         public const double BusSpeed = 5.0;          // m/s (18 km/h)
         public const double DwellSeconds = 20;       // dừng mỗi trạm
         public const double WalkSpeed = 1.2;         // m/s
         public const double WalkMax = 250;           // đi bộ sang trạm khác tối đa chừng này (m)
         public const double WalkDetour = 1.3;        // đường đi bộ dài hơn đường chim bay
-        public const int FarePerRide = 7000;         // đồng / chuyến
 
         public RoadGraph G;
         public List<BusLine> Lines;
@@ -221,7 +219,7 @@ namespace TestMap.Routing
                     // Lên xe và đi ngay tới trạm kế tiếp: mỗi lần lên xe luôn đi qua ít nhất một trạm
                     BusLine bl = n.Lines[l];
                     double first = (bl.StopDist[i + 1] - bl.StopDist[i]) / TransitNet.BusSpeed + TransitNet.DwellSeconds;
-                    Relax(dist, prev, heap, u, rideBase + idx + 1, du + TransitNet.HeadwaySeconds / 2 + boardPenalty + first);
+                    Relax(dist, prev, heap, u, rideBase + idx + 1, du + bl.HeadwayMin * 30.0 + boardPenalty + first);
                 }
                 if (u < S) continue;                         // đang chờ xe: không đi bộ tiếp
 
@@ -299,11 +297,11 @@ namespace TestMap.Routing
                     it.Rides++;
                     it.RideMeters += l.Meters;
                     it.RideStops += l.StopCount;
-                    it.Seconds += TransitNet.HeadwaySeconds / 2;      // chờ xe
+                    it.Seconds += l.Line.HeadwayMin * 30.0;      // chờ xe: trung bình nửa khoảng cách giữa hai chuyến
+                    it.FareVnd += l.Line.Fare;
                     sig.Append("l" + l.LineIndex + ";");        // gộp các phương án cùng dãy tuyến, chỉ khác trạm đổi xe
                 }
             }
-            it.FareVnd = it.Rides * TransitNet.FarePerRide;
             it.Signature = sig.ToString();
             return it.Rides == 0 ? null : it;
         }
