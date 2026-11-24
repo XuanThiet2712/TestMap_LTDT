@@ -46,6 +46,7 @@ namespace TestMap.Routing
 
         public readonly List<BusStop> Stops = new List<BusStop>();
         public List<int>[] StopsAtNode;     // StopsAtNode[n] = các trạm gắn vào giao lộ n (null nếu không có)
+        public bool[] Blocked;              // Blocked[e] = đoạn đường e đang bị chặn (để mô phỏng): thuật toán không được đi qua
         public List<int>[] EdgesByClass;    // chỉ số các đoạn đường theo cấp đường 0..3 (để vẽ đường lớn đè lên đường nhỏ)
 
         // ===== Đọc từ 2 file CSV =====
@@ -236,8 +237,23 @@ namespace TestMap.Routing
             }
         }
 
+        public bool IsBlocked(int edge) { return Blocked != null && edge >= 0 && edge < Blocked.Length && Blocked[edge]; }
+
+        public int BlockedCount
+        {
+            get
+            {
+                int c = 0;
+                if (Blocked != null) foreach (bool b in Blocked) if (b) c++;
+                return c;
+            }
+        }
+
+        public void ClearBlocked() { if (Blocked != null) Array.Clear(Blocked, 0, Blocked.Length); }
+
         public void BuildAdjacency()
         {
+            Blocked = new bool[Edges.Count];
             Adj = new List<int>[Nodes.Count];
             for (int i = 0; i < Adj.Length; i++) Adj[i] = new List<int>();
             StopsAtNode = new List<int>[Nodes.Count];

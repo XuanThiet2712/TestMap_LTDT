@@ -8,13 +8,13 @@ using System.Text.RegularExpressions;
 
 namespace TestMap.Services
 {
-    public enum UserRole { Passenger, Driver }
+    public enum UserRole { Passenger, Driver, Admin }
 
     public class UserAccount
     {
         public string Name;
         public UserRole Role;
-        public string RoleText { get { return Role == UserRole.Driver ? "Tài xế" : "Hành khách"; } }
+        public string RoleText { get { return Role == UserRole.Admin ? "Quản trị viên" : (Role == UserRole.Driver ? "Tài xế" : "Hành khách"); } }
     }
 
     // Một địa điểm yêu thích của hành khách (lưu theo tọa độ để dùng được ở mọi khu vực bản đồ)

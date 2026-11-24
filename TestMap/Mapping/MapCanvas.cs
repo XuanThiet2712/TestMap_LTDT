@@ -56,6 +56,16 @@ namespace TestMap.Mapping
         public double DriverLat, DriverLng;
         public string DriverText = "";
 
+        // ----- Chặn đường và lớp vẽ mô phỏng -----
+        public bool BlockMode;                                    // true: bấm vào đoạn đường để chặn / mở lại
+        public event Action<int> EdgeClicked;                     // bấm vào một đoạn đường (chỉ số cạnh) khi BlockMode
+        public HashSet<PoiKind> PoiFilter;                        // chỉ vẽ các loại địa điểm này (null = tất cả)
+        public HashSet<int> SimOpenNodes;                         // mô phỏng tìm đường: giao lộ đang chờ trong hàng đợi
+        public int SimCurrentNode = -1;                           // giao lộ vừa được chốt
+        public HashSet<int> SimStops;                             // mô phỏng gợi ý xe buýt: các trạm đã xét
+        public int SimCurrentStop = -1;                           // trạm đang xét
+        private int hoverEdge = -1;
+
         // Bấm chuột trái (không kéo) lên một địa điểm (khi không trúng trạm)
         public event Action<Poi> PoiClicked;
 
@@ -225,6 +235,8 @@ namespace TestMap.Mapping
             DrawLiveBuses(g, view);
             DrawMyLocation(g, view);
             DrawDriver(g, view);
+            DrawBlocked(g, scale, view);
+            DrawSim(g, view);
 
             // 5. Xe buýt chạy thử
             if (BusMeters >= 0 && Route != null && Route.Points.Count > 1)
@@ -595,12 +607,24 @@ namespace TestMap.Mapping
                 Cursor = best >= 0 ? Cursors.Hand : Cursors.Default;
                 Invalidate();
             }
+
+            if (BlockMode)
+            {
+                int he = best >= 0 ? -1 : EdgeAt(e.X, e.Y, 9);
+                if (he != hoverEdge)
+                {
+                    hoverEdge = he;
+                    if (best < 0) Cursor = he >= 0 ? Cursors.Cross : Cursors.Default;
+                    Invalidate();
+                }
+            }
+            else if (hoverEdge != -1) { hoverEdge = -1; Invalidate(); }
         }
 
         protected override void OnMouseLeave(EventArgs e)
         {
             base.OnMouseLeave(e);
-            if (hoverStop != -1) { hoverStop = -1; Invalidate(); }
+            if (hoverStop != -1 || hoverEdge != -1) { hoverStop = -1; hoverEdge = -1; Invalidate(); }
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
@@ -618,8 +642,10 @@ namespace TestMap.Mapping
             if (dx * dx + dy * dy > 25) return;             // đã kéo bản đồ, không phải bấm
             int s = StopAt(e.X, e.Y, 12);
             Poi poi = s < 0 && ShowPois ? PoiAt(e.X, e.Y, 13) : null;
+            int edgeHit = (s < 0 && poi == null && BlockMode) ? EdgeAt(e.X, e.Y, 9) : -1;
             if (s >= 0) { if (StopClicked != null) StopClicked(s); }
             else if (poi != null) { if (PoiClicked != null) PoiClicked(poi); }
+            else if (edgeHit >= 0) { if (EdgeClicked != null) EdgeClicked(edgeHit); }
             else if (MapClicked != null)
             {
                 PointLatLng p = FromLocalToLatLng(e.X, e.Y);
@@ -649,6 +675,7 @@ namespace TestMap.Mapping
             double bestD = radius * radius;
             foreach (Poi p in Pois)
             {
+                if (PoiFilter != null && !PoiFilter.Contains(p.Kind)) continue;
                 GPoint q = FromLatLngToLocal(new PointLatLng(p.Lat, p.Lng));
                 double dx = q.X - x, dy = q.Y - y, d = dx * dx + dy * dy;
                 if (d < bestD) { bestD = d; best = p; }
@@ -662,6 +689,7 @@ namespace TestMap.Mapping
             float size = Zoom >= 16 ? 22f : (Zoom >= 15 ? 18f : 14f);
             foreach (Poi p in Pois)
             {
+                if (PoiFilter != null && !PoiFilter.Contains(p.Kind)) continue;
                 if (!InView(p.Lat, p.Lng, view)) continue;
                 PointF c = ToScreen(p.Lat, p.Lng);
                 DrawPoiIcon(g, p.Kind, c, size);
@@ -670,6 +698,7 @@ namespace TestMap.Mapping
             if (Zoom >= 16)
                 foreach (Poi p in Pois)
                 {
+                    if (PoiFilter != null && !PoiFilter.Contains(p.Kind)) continue;
                     if (!InView(p.Lat, p.Lng, view)) continue;
                     DrawLabel(g, p.Name, ToScreen(p.Lat, p.Lng), SmallFont, PoiColor(p.Kind), size / 2 + 3f, used);
                 }
@@ -770,6 +799,125 @@ namespace TestMap.Mapping
             PointF c = ToScreen(DriverLat, DriverLng);
             DrawBus(g, c);
             DrawTag(g, string.IsNullOrEmpty(DriverText) ? "Xe của bạn" : DriverText, c, Color.FromArgb(180, 83, 9));
+        }
+
+        // ----- Đường bị chặn -----
+        private List<PointF> EdgePoints(int ei)
+        {
+            RoadEdge e = RoadNet.Edges[ei];
+            LatLng a = RoadNet.Nodes[e.From], b = RoadNet.Nodes[e.To];
+            var pts = new List<PointF>();
+            pts.Add(ToScreen(a.Lat, a.Lng));
+            if (e.Geometry != null) foreach (LatLng p in e.Geometry) pts.Add(ToScreen(p.Lat, p.Lng));
+            pts.Add(ToScreen(b.Lat, b.Lng));
+            return pts;
+        }
+
+        private static bool EdgeInView(RoadEdge e, RectLatLng v)
+        {
+            return !(e.MaxLat < v.Bottom || e.MinLat > v.Top || e.MaxLng < v.Left || e.MinLng > v.Right);
+        }
+
+        // Đoạn đường gần điểm (x, y) nhất trong bán kính tol (pixel); -1 nếu không có
+        private int EdgeAt(int x, int y, int tol)
+        {
+            if (RoadNet == null) return -1;
+            RectLatLng view = ViewArea;
+            int best = -1;
+            double bestD = (double)tol * tol;
+            for (int ei = 0; ei < RoadNet.Edges.Count; ei++)
+            {
+                if (!EdgeInView(RoadNet.Edges[ei], view)) continue;
+                List<PointF> pts = EdgePoints(ei);
+                for (int i = 1; i < pts.Count; i++)
+                {
+                    double d = SegDist2(x, y, pts[i - 1], pts[i]);
+                    if (d < bestD) { bestD = d; best = ei; }
+                }
+            }
+            return best;
+        }
+
+        private static double SegDist2(double px, double py, PointF a, PointF b)
+        {
+            double dx = b.X - a.X, dy = b.Y - a.Y, len2 = dx * dx + dy * dy;
+            double t = len2 <= 0 ? 0 : Math.Max(0, Math.Min(1, ((px - a.X) * dx + (py - a.Y) * dy) / len2));
+            double cx = a.X + t * dx - px, cy = a.Y + t * dy - py;
+            return cx * cx + cy * cy;
+        }
+
+        private void DrawBlocked(Graphics g, float scale, RectLatLng view)
+        {
+            if (RoadNet == null || RoadNet.Blocked == null) return;
+            Color red = Color.FromArgb(220, 38, 38);
+
+            if (BlockMode && hoverEdge >= 0 && hoverEdge < RoadNet.Edges.Count)
+                using (Pen hp = RoundPen(Color.FromArgb(150, 234, 88, 12), 7f * scale + 3f))
+                    g.DrawLines(hp, EdgePoints(hoverEdge).ToArray());
+
+            using (Pen pen = new Pen(red, 4f * scale + 1.5f))
+            {
+                pen.DashStyle = DashStyle.Dash;
+                pen.StartCap = LineCap.Round;
+                pen.EndCap = LineCap.Round;
+                for (int ei = 0; ei < RoadNet.Edges.Count; ei++)
+                {
+                    if (!RoadNet.Blocked[ei] || !EdgeInView(RoadNet.Edges[ei], view)) continue;
+                    List<PointF> pts = EdgePoints(ei);
+                    g.DrawLines(pen, pts.ToArray());
+
+                    PointF mid = pts[pts.Count / 2];
+                    if (pts.Count % 2 == 0) mid = new PointF((pts[pts.Count / 2 - 1].X + mid.X) / 2, (pts[pts.Count / 2 - 1].Y + mid.Y) / 2);
+                    using (var bg = new SolidBrush(red)) g.FillEllipse(bg, mid.X - 9, mid.Y - 9, 18, 18);
+                    using (var wp = new Pen(Color.White, 2.2f))
+                    {
+                        g.DrawLine(wp, mid.X - 4, mid.Y - 4, mid.X + 4, mid.Y + 4);
+                        g.DrawLine(wp, mid.X - 4, mid.Y + 4, mid.X + 4, mid.Y - 4);
+                    }
+                }
+            }
+        }
+
+        // ----- Lớp vẽ cho phần mô phỏng thuật toán -----
+        private void DrawSim(Graphics g, RectLatLng view)
+        {
+            if (RoadNet == null) return;
+            Color amber = Color.FromArgb(245, 158, 11), blue = Color.FromArgb(37, 99, 235);
+
+            if (SimOpenNodes != null)
+                foreach (int n in SimOpenNodes)
+                {
+                    if (n < 0 || n >= RoadNet.Nodes.Count) continue;
+                    LatLng p = RoadNet.Nodes[n];
+                    if (!InView(p.Lat, p.Lng, view)) continue;
+                    PointF c = ToScreen(p.Lat, p.Lng);
+                    using (var f = new SolidBrush(amber)) g.FillEllipse(f, c.X - 5, c.Y - 5, 10, 10);
+                    using (var w = new Pen(Color.White, 1.6f)) g.DrawEllipse(w, c.X - 5, c.Y - 5, 10, 10);
+                }
+
+            if (SimStops != null)
+                foreach (int s in SimStops)
+                {
+                    if (s < 0 || s >= RoadNet.Stops.Count) continue;
+                    BusStop st = RoadNet.Stops[s];
+                    if (!InView(st.Lat, st.Lng, view)) continue;
+                    PointF c = ToScreen(st.Lat, st.Lng);
+                    using (var pen = new Pen(amber, 2.6f)) g.DrawEllipse(pen, c.X - 9, c.Y - 9, 18, 18);
+                }
+
+            if (SimCurrentNode >= 0 && SimCurrentNode < RoadNet.Nodes.Count)
+                DrawSimFocus(g, RoadNet.Nodes[SimCurrentNode], view, blue);
+            if (SimCurrentStop >= 0 && SimCurrentStop < RoadNet.Stops.Count)
+                DrawSimFocus(g, new LatLng(RoadNet.Stops[SimCurrentStop].Lat, RoadNet.Stops[SimCurrentStop].Lng), view, blue);
+        }
+
+        private void DrawSimFocus(Graphics g, LatLng at, RectLatLng view, Color color)
+        {
+            if (!InView(at.Lat, at.Lng, view)) return;
+            PointF c = ToScreen(at.Lat, at.Lng);
+            using (var halo = new SolidBrush(Color.FromArgb(55, color))) g.FillEllipse(halo, c.X - 18, c.Y - 18, 36, 36);
+            using (var w = new SolidBrush(Color.White)) g.FillEllipse(w, c.X - 8, c.Y - 8, 16, 16);
+            using (var b = new SolidBrush(color)) g.FillEllipse(b, c.X - 5.5f, c.Y - 5.5f, 11, 11);
         }
 
         // Nhãn nhỏ nền màu phía trên một điểm

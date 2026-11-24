@@ -12,6 +12,9 @@ namespace TestMap.Routing
 
         public List<int> Visited = new List<int>();                  // các giao lộ theo thứ tự được xét
         public List<int> VisitedViaEdge = new List<int>();           // đoạn đường dùng để tới giao lộ đó (-1 với điểm xuất phát)
+        public List<double> VisitedCost = new List<double>();        // g: quãng đường ngắn nhất từ điểm đi tới giao lộ vừa chốt (m)
+        public List<int> HeapAtPop = new List<int>();                // số phần tử còn trong hàng đợi ngay sau khi lấy giao lộ đó ra
+        public bool AStar;                                           // true: A*, false: Dijkstra
 
         public List<int> PathNodes = new List<int>();                // các giao lộ trên đường đi, từ đầu tới đích
         public List<int> PathEdges = new List<int>();                // các đoạn đường trên đường đi, theo thứ tự
@@ -23,7 +26,7 @@ namespace TestMap.Routing
         public static SearchResult Find(RoadGraph g, int start, int goal, bool useAStar)
         {
             var sw = Stopwatch.StartNew();
-            var result = new SearchResult();
+            var result = new SearchResult { AStar = useAStar };
 
             int n = g.Nodes.Count;
             double[] cost = new double[n];      // quãng đường ngắn nhất đã biết từ start
@@ -44,10 +47,13 @@ namespace TestMap.Routing
 
                 result.Visited.Add(u);
                 result.VisitedViaEdge.Add(prevEdge[u]);
+                result.VisitedCost.Add(cost[u]);
+                result.HeapAtPop.Add(heap.Count);
                 if (u == goal) break;               // tới đích rồi
 
                 foreach (int ei in g.Adj[u])
                 {
+                    if (g.IsBlocked(ei)) continue;      // đường đang bị chặn: coi như không tồn tại
                     int v = g.OtherEnd(ei, u);
                     if (closed[v]) continue;
 

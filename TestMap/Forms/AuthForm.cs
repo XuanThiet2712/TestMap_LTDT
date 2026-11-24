@@ -19,9 +19,19 @@ namespace TestMap.Forms
             InitializeComponent();
             this.dataRoot = dataRoot;
             Shown += (s, e) => txtUser.Focus();
+            ShowHint();
         }
 
-        private void tabAuth_SelectedIndexChanged(object sender, EventArgs e) { lblMsg.Text = ""; }
+        private void tabAuth_SelectedIndexChanged(object sender, EventArgs e) { ShowHint(); }
+
+        private void ShowHint()
+        {
+            lblMsg.ForeColor = System.Drawing.Color.FromArgb(100, 116, 139);
+            lblMsg.Text = tabAuth.SelectedIndex == 0
+                ? "Hành khách và tài xế đăng nhập ở đây. Quản trị viên cũng dùng form này (tài khoản \"admin\"" +
+                  (AdminAuth.IsDefault(dataRoot) ? ", mật khẩu mặc định " + AdminAuth.DefaultPassword + ", nên đổi sau" : "") + ")."
+                : "";
+        }
 
         private void cboRole_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -37,6 +47,9 @@ namespace TestMap.Forms
         private void btnLogin_Click(object sender, EventArgs e)
         {
             UserAccount acc = UserStore.Login(dataRoot, txtUser.Text, txtPass.Text);
+            // Quản trị viên cũng đăng nhập ở đây (tài khoản admin riêng, mật khẩu đổi trong màn hình Quản trị)
+            if (acc == null && AdminAuth.Verify(dataRoot, txtUser.Text.Trim(), txtPass.Text))
+                acc = new UserAccount { Name = AdminAuth.User, Role = UserRole.Admin };
             if (acc != null) { Account = acc; DialogResult = DialogResult.OK; return; }
 
             attempts++;

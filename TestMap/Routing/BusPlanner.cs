@@ -24,6 +24,7 @@ namespace TestMap.Routing
         public int FromStop, ToStop;      // chỉ số trạm trong RoadGraph.Stops
         public double Meters, Seconds;
         public int StopCount;             // số trạm đi qua (chỉ với đoạn đi xe)
+        public List<LatLng> WalkPath;     // đường đi bộ theo mạng đường (chỉ với phương án đi bộ hoàn toàn); null = đường thẳng
     }
 
     // Một cách đi từ A tới B
@@ -38,6 +39,7 @@ namespace TestMap.Routing
         public string Signature = "";
 
         public int Transfers { get { return Math.Max(0, Rides - 1); } }
+        public bool WalkOnly { get { return Rides == 0; } }      // phương án đi bộ hoàn toàn, không cần xe buýt
 
         // Trạm lên xe đầu tiên
         public int FirstBoardStop
@@ -58,8 +60,12 @@ namespace TestMap.Routing
                 if (l.Walk)
                 {
                     m.Color = Color.FromArgb(100, 116, 139);
-                    m.Points.Add(new LatLng(g.Stops[l.FromStop].Lat, g.Stops[l.FromStop].Lng));
-                    m.Points.Add(new LatLng(g.Stops[l.ToStop].Lat, g.Stops[l.ToStop].Lng));
+                    if (l.WalkPath != null && l.WalkPath.Count >= 2) m.Points.AddRange(l.WalkPath);
+                    else
+                    {
+                        m.Points.Add(new LatLng(g.Stops[l.FromStop].Lat, g.Stops[l.FromStop].Lng));
+                        m.Points.Add(new LatLng(g.Stops[l.ToStop].Lat, g.Stops[l.ToStop].Lng));
+                    }
                 }
                 else
                 {
@@ -131,10 +137,59 @@ namespace TestMap.Routing
         }
     }
 
+    // ----- Ghi vết thuật toán gợi ý (để mô phỏng từng bước) -----
+    public enum PlanKind { Start, Wait, Ride, Alight, Goal }
+
+    // Một bước: thuật toán "chốt" xong một trạng thái (đang ở đâu, tốn bao nhiêu giây)
+    public class PlanStep
+    {
+        public PlanKind Kind;
+        public int Stop;          // chỉ số trạm trong RoadGraph.Stops
+        public int LineIndex = -1;// tuyến đang ngồi (chỉ với Ride)
+        public int Pos;           // vị trí trạm trên tuyến (chỉ với Ride)
+        public double Cost;       // tổng thời gian tính tới đây (giây)
+    }
+
+    // Một lượt tìm kiếm của bộ gợi ý (bộ gợi ý chạy nhiều lượt: nhanh nhất, ít đổi xe, rồi cấm lần lượt từng tuyến để tìm cách khác)
+    public class PlanRound
+    {
+        public double Penalty;                                   // phạt mỗi lần lên xe (giây): 60 = ưu tiên nhanh, 900 = ưu tiên ít đổi xe
+        public List<int> Banned = new List<int>();               // các tuyến bị cấm trong lượt này
+        public List<PlanStep> Steps = new List<PlanStep>();
+        public Itinerary Result;                                 // phương án tìm được (null nếu không có)
+        public string Outcome = "";                              // ok | dup | tooMany | tooWalk | noPath
+    }
+
     public static class BusPlanner
     {
         // Gợi ý các cách đi từ trạm `src` tới trạm `to`, tối đa `maxRides` chuyến xe, sắp theo thời gian.
         public static List<Itinerary> Plan(TransitNet n, int src, int to, int maxRides)
+        {
+            return Plan(n, src, to, maxRides, null);
+        }
+
+        // Phương án ĐI BỘ thẳng từ trạm src tới trạm to theo mạng đường (tránh các đoạn đường đang bị chặn).
+        // Dùng khi không có tuyến xe phù hợp. Trả về null nếu không có đường nối hai trạm.
+        public static Itinerary WalkOnly(RoadGraph g, int src, int to)
+        {
+            if (g == null || src < 0 || to < 0 || src == to || src >= g.Stops.Count || to >= g.Stops.Count) return null;
+            SearchResult r = PathFinder.Find(g, g.Stops[src].Node, g.Stops[to].Node, true);
+            if (!r.Found) return null;
+
+            double meters = r.Distance;
+            var leg = new TransitLeg
+            {
+                Walk = true, FromStop = src, ToStop = to,
+                Meters = meters, Seconds = meters / TransitNet.WalkSpeed,
+                WalkPath = new List<LatLng>(RoutePath.Build(g, r).Points)
+            };
+            var it = new Itinerary { Seconds = leg.Seconds, WalkMeters = meters, Signature = "walk" };
+            it.Legs.Add(leg);
+            return it;
+        }
+
+        // trace != null: ghi lại từng lượt và từng bước để mô phỏng
+        public static List<Itinerary> Plan(TransitNet n, int src, int to, int maxRides, List<PlanRound> trace)
         {
             var res = new List<Itinerary>();
             if (n == null || n.Lines.Count == 0 || src < 0 || to < 0 || src == to) return res;
@@ -150,9 +205,21 @@ namespace TestMap.Routing
                 while (queue.Count > 0 && budget-- > 0)
                 {
                     bool[] banned = queue.Dequeue();
-                    Itinerary it = Search(n, src, to, penalty, banned);
-                    if (it == null || it.Rides > maxRides || it.WalkMeters > 1200) continue;
-                    if (seen.Add(it.Signature)) res.Add(it);
+                    PlanRound round = null;
+                    if (trace != null)
+                    {
+                        round = new PlanRound { Penalty = penalty };
+                        for (int bi = 0; bi < banned.Length; bi++) if (banned[bi]) round.Banned.Add(bi);
+                        trace.Add(round);
+                    }
+                    Itinerary it = Search(n, src, to, penalty, banned, round != null ? round.Steps : null);
+                    if (round != null) round.Result = it;
+                    if (it == null) { if (round != null) round.Outcome = "noPath"; continue; }
+                    if (it.Rides > maxRides) { if (round != null) round.Outcome = "tooMany"; continue; }
+                    if (it.WalkMeters > 1200) { if (round != null) round.Outcome = "tooWalk"; continue; }
+                    bool isNew = seen.Add(it.Signature);
+                    if (isNew) res.Add(it);
+                    if (round != null) round.Outcome = isNew ? "ok" : "dup";
 
                     // Tìm phương án khác: cấm lần lượt từng tuyến vừa dùng
                     foreach (TransitLeg leg in it.Legs)
@@ -175,7 +242,7 @@ namespace TestMap.Routing
         //   2S..          "ngồi trên xe": vừa tới một vị trí của một tuyến bằng xe
         //   2S+Total      điểm bắt đầu (tại trạm đi), 2S+Total+1: đích
         // Ràng buộc như vậy để không có chuyện đi bộ nhiều đoạn liên tiếp hay hành trình không đi chuyến xe nào.
-        private static Itinerary Search(TransitNet n, int src, int to, double boardPenalty, bool[] banned)
+        private static Itinerary Search(TransitNet n, int src, int to, double boardPenalty, bool[] banned, List<PlanStep> trace)
         {
             int S = n.S, rideBase = 2 * S, start = rideBase + n.Total, goal = start + 1, N = goal + 1;
             var dist = new double[N];
@@ -192,6 +259,21 @@ namespace TestMap.Routing
                 int u = heap.Pop(out key);
                 if (done[u]) continue;
                 done[u] = true;
+                if (trace != null && trace.Count < 5000)
+                {
+                    var st = new PlanStep { Cost = dist[u] };
+                    if (u == start) { st.Kind = PlanKind.Start; st.Stop = src; }
+                    else if (u == goal) { st.Kind = PlanKind.Goal; st.Stop = to; }
+                    else if (u >= rideBase)
+                    {
+                        int ix = u - rideBase;
+                        st.Kind = PlanKind.Ride; st.LineIndex = n.LineOf[ix]; st.Pos = n.PosOf[ix];
+                        st.Stop = n.Lines[st.LineIndex].Stops[st.Pos];
+                    }
+                    else if (u < S) { st.Kind = PlanKind.Wait; st.Stop = u; }
+                    else { st.Kind = PlanKind.Alight; st.Stop = u - S; }
+                    trace.Add(st);
+                }
                 if (u == goal) break;
                 double du = dist[u];
 

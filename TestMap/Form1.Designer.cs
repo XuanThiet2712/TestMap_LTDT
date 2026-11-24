@@ -46,6 +46,8 @@ namespace TestMap
             this.btnLoadPoi = new System.Windows.Forms.Button();
             this.btnReload = new System.Windows.Forms.Button();
             this.btnAccount = new System.Windows.Forms.Button();
+            this.btnPoiFilter = new System.Windows.Forms.Button();
+            this.btnSim = new System.Windows.Forms.Button();
             this.lblAccount = new System.Windows.Forms.Label();
             this.btnAdmin = new System.Windows.Forms.Button();
             this.lblInfo = new System.Windows.Forms.Label();
@@ -58,6 +60,13 @@ namespace TestMap
             this.lblStepsTitle = new System.Windows.Forms.Label();
             this.lnkCopyBus = new System.Windows.Forms.LinkLabel();
             this.lblItinMsg = new System.Windows.Forms.Label();
+            this.pnlItinFilter = new System.Windows.Forms.Panel();
+            this.lblSort = new System.Windows.Forms.Label();
+            this.cboItinSort = new System.Windows.Forms.ComboBox();
+            this.lblItinCount = new System.Windows.Forms.Label();
+            this.lblWalkLimit = new System.Windows.Forms.Label();
+            this.cboWalkLimit = new System.Windows.Forms.ComboBox();
+            this.chkWalkSuggest = new System.Windows.Forms.CheckBox();
             this.lblDemoBus = new System.Windows.Forms.Label();
             this.pnlShortest = new System.Windows.Forms.Panel();
             this.lstStops = new System.Windows.Forms.ListBox();
@@ -110,6 +119,7 @@ namespace TestMap
             this.pnlSide.SuspendLayout();
             this.pnlBus.SuspendLayout();
             this.pnlSteps.SuspendLayout();
+            this.pnlItinFilter.SuspendLayout();
             this.pnlStepsHeader.SuspendLayout();
             this.pnlShortest.SuspendLayout();
             this.pnlListTitle.SuspendLayout();
@@ -168,6 +178,8 @@ namespace TestMap
             this.flowTop.Controls.Add(this.btnReload);
             this.flowTop.Controls.Add(this.btnAccount);
             this.flowTop.Controls.Add(this.lblAccount);
+            this.flowTop.Controls.Add(this.btnPoiFilter);
+            this.flowTop.Controls.Add(this.btnSim);
             this.flowTop.Controls.Add(this.btnAdmin);
             this.flowTop.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowTop.Location = new System.Drawing.Point(0, 0);
@@ -357,10 +369,42 @@ namespace TestMap
             this.lblAccount.Location = new System.Drawing.Point(140, 50);
             this.lblAccount.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
             this.lblAccount.Name = "lblAccount";
-            this.lblAccount.Size = new System.Drawing.Size(360, 32);
+            this.lblAccount.Size = new System.Drawing.Size(300, 32);
             this.lblAccount.TabIndex = 9;
             this.lblAccount.Text = "Chưa đăng nhập (dùng với tư cách khách)";
             this.lblAccount.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // btnPoiFilter
+            // 
+            this.btnPoiFilter.BackColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnPoiFilter.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnPoiFilter.FlatAppearance.BorderSize = 0;
+            this.btnPoiFilter.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnPoiFilter.ForeColor = System.Drawing.Color.White;
+            this.btnPoiFilter.Location = new System.Drawing.Point(0, 0);
+            this.btnPoiFilter.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
+            this.btnPoiFilter.Name = "btnPoiFilter";
+            this.btnPoiFilter.Size = new System.Drawing.Size(118, 32);
+            this.btnPoiFilter.TabIndex = 10;
+            this.btnPoiFilter.Text = "Lọc địa điểm";
+            this.btnPoiFilter.UseVisualStyleBackColor = false;
+            this.btnPoiFilter.Click += new System.EventHandler(this.btnPoiFilter_Click);
+            // 
+            // btnSim
+            // 
+            this.btnSim.BackColor = System.Drawing.Color.FromArgb(79, 70, 229);
+            this.btnSim.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnSim.FlatAppearance.BorderSize = 0;
+            this.btnSim.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSim.ForeColor = System.Drawing.Color.White;
+            this.btnSim.Location = new System.Drawing.Point(0, 0);
+            this.btnSim.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
+            this.btnSim.Name = "btnSim";
+            this.btnSim.Size = new System.Drawing.Size(118, 32);
+            this.btnSim.TabIndex = 10;
+            this.btnSim.Text = "⚙ Mô phỏng";
+            this.btnSim.UseVisualStyleBackColor = false;
+            this.btnSim.Click += new System.EventHandler(this.btnSim_Click);
             // 
             // btnAdmin
             // 
@@ -375,6 +419,7 @@ namespace TestMap
             this.btnAdmin.Size = new System.Drawing.Size(92, 32);
             this.btnAdmin.TabIndex = 9;
             this.btnAdmin.Text = "Quản trị";
+            this.btnAdmin.Visible = false;
             this.btnAdmin.UseVisualStyleBackColor = false;
             this.btnAdmin.Click += new System.EventHandler(this.btnAdmin_Click);
             // 
@@ -414,6 +459,7 @@ namespace TestMap
             this.pnlBus.Controls.Add(this.lstItins);
             this.pnlBus.Controls.Add(this.pnlSteps);
             this.pnlBus.Controls.Add(this.lblItinMsg);
+            this.pnlBus.Controls.Add(this.pnlItinFilter);
             this.pnlBus.Controls.Add(this.lblDemoBus);
             this.pnlBus.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlBus.Location = new System.Drawing.Point(0, 238);
@@ -502,6 +548,99 @@ namespace TestMap
             this.lnkCopyBus.Text = "Sao chép";
             this.lnkCopyBus.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.lnkCopyBus.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.lnkCopyBus_LinkClicked);
+            // 
+            // pnlItinFilter  (bảng lọc / sắp xếp gợi ý)
+            // 
+            this.pnlItinFilter.BackColor = System.Drawing.Color.FromArgb(226, 232, 240);
+            this.pnlItinFilter.Controls.Add(this.lblSort);
+            this.pnlItinFilter.Controls.Add(this.cboItinSort);
+            this.pnlItinFilter.Controls.Add(this.lblItinCount);
+            this.pnlItinFilter.Controls.Add(this.lblWalkLimit);
+            this.pnlItinFilter.Controls.Add(this.cboWalkLimit);
+            this.pnlItinFilter.Controls.Add(this.chkWalkSuggest);
+            this.pnlItinFilter.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlItinFilter.Location = new System.Drawing.Point(0, 50);
+            this.pnlItinFilter.Name = "pnlItinFilter";
+            this.pnlItinFilter.Size = new System.Drawing.Size(400, 68);
+            this.pnlItinFilter.TabIndex = 4;
+            // 
+            // lblSort
+            // 
+            this.lblSort.AutoSize = false;
+            this.lblSort.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
+            this.lblSort.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.lblSort.Location = new System.Drawing.Point(16, 9);
+            this.lblSort.Name = "lblSort";
+            this.lblSort.Size = new System.Drawing.Size(70, 20);
+            this.lblSort.TabIndex = 0;
+            this.lblSort.Text = "Sắp xếp";
+            // 
+            // cboItinSort
+            // 
+            this.cboItinSort.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboItinSort.FormattingEnabled = true;
+            this.cboItinSort.Items.AddRange(new object[] {
+            "Nhanh nhất",
+            "Ít đổi tuyến nhất",
+            "Rẻ nhất",
+            "Ít đi bộ nhất"});
+            this.cboItinSort.Location = new System.Drawing.Point(90, 6);
+            this.cboItinSort.Name = "cboItinSort";
+            this.cboItinSort.SelectedIndex = 0;
+            this.cboItinSort.Size = new System.Drawing.Size(140, 23);
+            this.cboItinSort.TabIndex = 1;
+            this.cboItinSort.SelectedIndexChanged += new System.EventHandler(this.cboItinSort_SelectedIndexChanged);
+            // 
+            // lblItinCount
+            // 
+            this.lblItinCount.AutoSize = false;
+            this.lblItinCount.ForeColor = System.Drawing.Color.FromArgb(100, 116, 139);
+            this.lblItinCount.Location = new System.Drawing.Point(240, 9);
+            this.lblItinCount.Name = "lblItinCount";
+            this.lblItinCount.Size = new System.Drawing.Size(144, 20);
+            this.lblItinCount.TabIndex = 2;
+            this.lblItinCount.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // lblWalkLimit
+            // 
+            this.lblWalkLimit.AutoSize = false;
+            this.lblWalkLimit.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
+            this.lblWalkLimit.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.lblWalkLimit.Location = new System.Drawing.Point(16, 39);
+            this.lblWalkLimit.Name = "lblWalkLimit";
+            this.lblWalkLimit.Size = new System.Drawing.Size(70, 20);
+            this.lblWalkLimit.TabIndex = 3;
+            this.lblWalkLimit.Text = "Đi bộ tối đa";
+            // 
+            // cboWalkLimit
+            // 
+            this.cboWalkLimit.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboWalkLimit.FormattingEnabled = true;
+            this.cboWalkLimit.Items.AddRange(new object[] {
+            "Tùy ý",
+            "300 m",
+            "500 m",
+            "800 m",
+            "1200 m"});
+            this.cboWalkLimit.Location = new System.Drawing.Point(90, 36);
+            this.cboWalkLimit.Name = "cboWalkLimit";
+            this.cboWalkLimit.SelectedIndex = 0;
+            this.cboWalkLimit.Size = new System.Drawing.Size(90, 23);
+            this.cboWalkLimit.TabIndex = 4;
+            this.cboWalkLimit.SelectedIndexChanged += new System.EventHandler(this.cboWalkLimit_SelectedIndexChanged);
+            // 
+            // chkWalkSuggest
+            // 
+            this.chkWalkSuggest.AutoSize = true;
+            this.chkWalkSuggest.Checked = true;
+            this.chkWalkSuggest.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkWalkSuggest.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.chkWalkSuggest.Location = new System.Drawing.Point(196, 38);
+            this.chkWalkSuggest.Name = "chkWalkSuggest";
+            this.chkWalkSuggest.Size = new System.Drawing.Size(150, 19);
+            this.chkWalkSuggest.TabIndex = 5;
+            this.chkWalkSuggest.Text = "Gợi ý đi bộ (khi không có xe)";
+            this.chkWalkSuggest.CheckedChanged += new System.EventHandler(this.chkWalkSuggest_CheckedChanged);
             // 
             // lblItinMsg
             // 
@@ -1186,6 +1325,7 @@ namespace TestMap
             this.pnlSide.ResumeLayout(false);
             this.pnlBus.ResumeLayout(false);
             this.pnlSteps.ResumeLayout(false);
+            this.pnlItinFilter.ResumeLayout(false);
             this.pnlStepsHeader.ResumeLayout(false);
             this.pnlShortest.ResumeLayout(false);
             this.pnlListTitle.ResumeLayout(false);
@@ -1223,6 +1363,8 @@ namespace TestMap
         private System.Windows.Forms.CheckBox chkPoi;
         private System.Windows.Forms.Button btnLoadPoi;
         private System.Windows.Forms.Button btnAccount;
+        private System.Windows.Forms.Button btnPoiFilter;
+        private System.Windows.Forms.Button btnSim;
         private System.Windows.Forms.Label lblAccount;
         private System.Windows.Forms.CheckBox chkSearch;
         private System.Windows.Forms.Button btnCompare;
@@ -1269,6 +1411,13 @@ namespace TestMap
         private System.Windows.Forms.Label lblStepsTitle;
         private System.Windows.Forms.LinkLabel lnkCopyBus;
         private System.Windows.Forms.Label lblItinMsg;
+        private System.Windows.Forms.Panel pnlItinFilter;
+        private System.Windows.Forms.Label lblSort;
+        private System.Windows.Forms.ComboBox cboItinSort;
+        private System.Windows.Forms.Label lblItinCount;
+        private System.Windows.Forms.Label lblWalkLimit;
+        private System.Windows.Forms.ComboBox cboWalkLimit;
+        private System.Windows.Forms.CheckBox chkWalkSuggest;
         private System.Windows.Forms.Label lblDemoBus;
 
         private System.Windows.Forms.Panel pnlShortest;
