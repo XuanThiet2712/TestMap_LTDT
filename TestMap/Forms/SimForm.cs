@@ -24,6 +24,8 @@ namespace TestMap.Forms
             SetEnabled(0, false);
             SetEnabled(1, false);
             RefreshBlocked();
+            chkShowWeights.Checked = host.ShowWeights;
+            chkShowNames.Checked = host.ShowNames;
         }
 
         private void SimForm_FormClosed(object sender, FormClosedEventArgs e)
@@ -177,6 +179,12 @@ namespace TestMap.Forms
             try { lstRounds.SelectedIndex = r; }
             finally { suppressRound = false; }
         }
+
+        // ----- tab Đồ thị -----
+        private void chkShowWeights_CheckedChanged(object sender, EventArgs e) { host.ShowWeights = chkShowWeights.Checked; }
+        private void chkShowNames_CheckedChanged(object sender, EventArgs e) { host.ShowNames = chkShowNames.Checked; }
+        private void btnLookup_Click(object sender, EventArgs e) { lblLookup.Text = host.LookupGraph(txtNode1.Text, txtNode2.Text); }
+        private void btnOpenModel_Click(object sender, EventArgs e) { host.OpenModel(); }
 
         // ----- tab Chặn đường -----
         private void RefreshBlocked()

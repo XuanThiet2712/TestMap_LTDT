@@ -340,8 +340,55 @@ namespace TestMap
 
         private void Report(string msg)
         {
-            if (IsHandleCreated) BeginInvoke(new Action(() => lblInfo.Text = msg));
+            if (IsHandleCreated)
+                BeginInvoke(new Action(() =>
+                {
+                    lblInfo.Text = msg;
+                    if (pbLoad.Style == ProgressBarStyle.Marquee) lblProgress.Text = msg;     // đang tải mạng: hiện "Đã nhận x MB"
+                }));
         }
+
+        // ----- Thanh tiến trình tải dữ liệu (luôn hiện ở dưới cùng) -----
+        // percent < 0: không biết tổng (đang tải từ mạng) nên chạy kiểu "đang chờ"
+        private void SetProgress(int percent, string text)
+        {
+            progressTimer.Stop();
+            if (percent < 0)
+            {
+                if (pbLoad.Style != ProgressBarStyle.Marquee) { pbLoad.Style = ProgressBarStyle.Marquee; pbLoad.MarqueeAnimationSpeed = 30; }
+                lblProgress.Text = text;
+            }
+            else
+            {
+                if (pbLoad.Style != ProgressBarStyle.Continuous) pbLoad.Style = ProgressBarStyle.Continuous;
+                pbLoad.Value = Math.Max(0, Math.Min(100, percent));
+                lblProgress.Text = percent + "%  ·  " + text;
+            }
+            pnlProgress.Update();
+        }
+
+        // Từ luồng nền
+        private void Prog(int percent, string text)
+        {
+            if (IsHandleCreated) BeginInvoke(new Action(() => SetProgress(percent, text)));
+        }
+
+        private void FinishProgress(string text)
+        {
+            SetProgress(100, text);
+            progressTimer.Stop();
+            progressTimer.Start();          // 1,5 giây sau tự về "Sẵn sàng"
+        }
+
+        private void ResetProgress()
+        {
+            progressTimer.Stop();
+            pbLoad.Style = ProgressBarStyle.Continuous;
+            pbLoad.Value = 0;
+            lblProgress.Text = "Sẵn sàng";
+        }
+
+        private void progressTimer_Tick(object sender, EventArgs e) { ResetProgress(); }
 
         private void SetBusy(bool value)
         {
@@ -382,6 +429,8 @@ namespace TestMap
 
             timer.Stop();
             SetBusy(true);
+            bool loaded = false;
+            SetProgress(0, "Bắt đầu");
             try
             {
                 if (force || !cached)
@@ -389,6 +438,7 @@ namespace TestMap
                     try
                     {
                         lblInfo.Text = "Đang tải dữ liệu " + a.Name + "...";
+                        SetProgress(-1, "Tải đường và trạm từ OpenStreetMap...");
                         await Task.Run(() => OsmImporter.ImportArea(a.South, a.West, a.North, a.East, dir, Report));
                     }
                     catch (Exception ex)
@@ -407,8 +457,14 @@ namespace TestMap
                 RoadGraph g;
                 try
                 {
-                    g = RoadGraph.Load(nodesPath, edgesPath);
-                    g.LoadStops(stopsPath);
+                    SetProgress(0, "Đọc dữ liệu đường");
+                    g = await Task.Run(() =>
+                    {
+                        RoadGraph gg = RoadGraph.Load(nodesPath, edgesPath, (pct, txt) => Prog(pct * 60 / 100, txt));
+                        Prog(62, "Đọc trạm xe buýt");
+                        gg.LoadStops(stopsPath);
+                        return gg;
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -418,6 +474,7 @@ namespace TestMap
 
                 // Tuyến xe buýt: dùng tuyến thật đã lưu; chưa có thì tạo tuyến demo
                 lblInfo.Text = "Đang dựng các tuyến xe buýt...";
+                SetProgress(65, "Dựng các tuyến xe buýt");
                 string adminPath = Path.Combine(dir, "lines_admin.csv");
                 List<BusLine> ls = null;
                 bool demo = false;
@@ -428,7 +485,7 @@ namespace TestMap
                         // ưu tiên tuyến do admin chỉnh sửa, rồi tới tuyến thật đã tải về
                         try { if (File.Exists(adminPath)) return AdminData.LoadLines(g, adminPath); } catch { }
                         if (!File.Exists(routesPath)) return null;
-                        try { return BusLines.Load(g, routesPath); } catch { return null; }
+                        try { return BusLines.Load(g, routesPath, (pct, txt) => Prog(65 + pct * 25 / 100, txt)); } catch { return null; }
                     });
                 }
                 catch { ls = null; }
@@ -439,12 +496,16 @@ namespace TestMap
                     demo = true;
                 }
 
+                SetProgress(92, "Dựng mạng gợi ý và giao diện");
                 ApplyGraph(g, a, ls, demo);
+                loaded = true;
                 needLines = force || (demo && !routeTried.Contains(a.Key));
             }
             finally
             {
                 SetBusy(false);
+                if (loaded) FinishProgress("Hoàn tất");
+                else ResetProgress();
             }
 
             // Thử tải tuyến thật ở nền (không chặn giao diện); lỗi thì vẫn dùng tuyến demo
@@ -454,6 +515,7 @@ namespace TestMap
         private void ApplyGraph(RoadGraph g, Area a, List<BusLine> ls, bool demo)
         {
             graph = g;
+            chkWeights.Checked = a.Offline;          // khu vực demo nhỏ: bật sẵn đỉnh và trọng số cho dễ xem
             g.AssignLabels(a.Key == "hcm_q1_3_5_10" ? (Func<double, double, string>)ZoneOf : null);
             LoadPois(a);
             mapCanvas.RoadNet = g;
@@ -518,6 +580,13 @@ namespace TestMap
 
         // Tải tuyến xe buýt thật của khu vực từ OpenStreetMap rồi nạp vào
         private async Task DownloadLines(Area a)
+        {
+            SetProgress(-1, "Tải tuyến xe buýt từ OpenStreetMap...");
+            try { await DownloadLinesCore(a); }
+            finally { FinishProgress("Xong"); }
+        }
+
+        private async Task DownloadLinesCore(Area a)
         {
             RoadGraph g0 = graph;
             if (g0 == null) return;
@@ -1401,8 +1470,10 @@ namespace TestMap
             lblInfo.Text = "Đang tải bệnh viện, trường học, chợ, công viên... của " + a.Name + " từ OpenStreetMap...";
             int count = 0;
             string err = null;
+            SetProgress(-1, "Tải địa điểm từ OpenStreetMap...");
             try { count = await Task.Run(() => PoiStore.Download(a.South, a.West, a.North, a.East, Path.Combine(DataRoot, a.Key), Report)); }
             catch (Exception ex) { err = ex.Message; }
+            FinishProgress(err == null ? "Xong" : "Lỗi tải");
             btnLoadPoi.Enabled = !busy;
             if (graph != g0) return;
             if (err != null) { lblInfo.Text = "Không tải được địa điểm: " + err; return; }

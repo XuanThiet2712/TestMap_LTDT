@@ -65,6 +65,12 @@ namespace TestMap.Mapping
         public HashSet<int> SimStops;                             // mô phỏng gợi ý xe buýt: các trạm đã xét
         public int SimCurrentStop = -1;                           // trạm đang xét
         private int hoverEdge = -1;
+        private Point hoverPoint;
+        private Poi hoverPoi;
+
+        // ----- Đồ thị: đỉnh và trọng số; tên địa điểm cụ thể -----
+        public bool ShowWeights;                                  // vẽ số đỉnh và trọng số (chiều dài, mét) của từng đoạn đường
+        public bool ShowAllNames = true;                          // hiện tên trạm / địa điểm sớm hơn (ở mức zoom thấp hơn)
 
         // Bấm chuột trái (không kéo) lên một địa điểm (khi không trúng trạm)
         public event Action<Poi> PoiClicked;
@@ -185,7 +191,7 @@ namespace TestMap.Mapping
                         PointF p = ToScreen(s.Lat, s.Lng);
                         g.FillEllipse(fill, p.X - r, p.Y - r, 2 * r, 2 * r);
                         g.DrawEllipse(border, p.X - r, p.Y - r, 2 * r, 2 * r);
-                        if (Zoom >= 17) normalLabels.Add(new KeyValuePair<string, PointF>(s.Name, p));
+                        if (Zoom >= (ShowAllNames ? 15 : 17)) normalLabels.Add(new KeyValuePair<string, PointF>(s.ToString(), p));
                     }
             }
 
@@ -236,6 +242,7 @@ namespace TestMap.Mapping
             DrawMyLocation(g, view);
             DrawDriver(g, view);
             DrawBlocked(g, scale, view);
+            DrawWeights(g, view);
             DrawSim(g, view);
 
             // 5. Xe buýt chạy thử
@@ -356,7 +363,7 @@ namespace TestMap.Mapping
                         g.FillEllipse(fill, p.X - 5.5f, p.Y - 5.5f, 11, 11);
                         g.DrawEllipse(border, p.X - 5.5f, p.Y - 5.5f, 11, 11);
                     }
-                    if (Zoom >= 16) labels.Add(new KeyValuePair<string, PointF>(s.Name, p));
+                    if (Zoom >= (ShowAllNames ? 15 : 16)) labels.Add(new KeyValuePair<string, PointF>(s.ToString(), p));
                 }
         }
 
@@ -608,17 +615,21 @@ namespace TestMap.Mapping
                 Invalidate();
             }
 
-            if (BlockMode)
+            hoverPoint = e.Location;
+            if (BlockMode || ShowWeights)
             {
                 int he = best >= 0 ? -1 : EdgeAt(e.X, e.Y, 9);
-                if (he != hoverEdge)
+                if (he != hoverEdge || (ShowWeights && he >= 0))
                 {
                     hoverEdge = he;
-                    if (best < 0) Cursor = he >= 0 ? Cursors.Cross : Cursors.Default;
+                    if (best < 0 && BlockMode) Cursor = he >= 0 ? Cursors.Cross : Cursors.Default;
                     Invalidate();
                 }
             }
             else if (hoverEdge != -1) { hoverEdge = -1; Invalidate(); }
+
+            Poi hp = (ShowPois && best < 0) ? PoiAt(e.X, e.Y, 13) : null;
+            if (hp != hoverPoi) { hoverPoi = hp; Invalidate(); }
         }
 
         protected override void OnMouseLeave(EventArgs e)
@@ -695,13 +706,15 @@ namespace TestMap.Mapping
                 DrawPoiIcon(g, p.Kind, c, size);
                 used.Add(new RectangleF(c.X - size / 2, c.Y - size / 2, size, size));
             }
-            if (Zoom >= 16)
+            if (Zoom >= (ShowAllNames ? 15 : 16))
                 foreach (Poi p in Pois)
                 {
                     if (PoiFilter != null && !PoiFilter.Contains(p.Kind)) continue;
                     if (!InView(p.Lat, p.Lng, view)) continue;
                     DrawLabel(g, p.Name, ToScreen(p.Lat, p.Lng), SmallFont, PoiColor(p.Kind), size / 2 + 3f, used);
                 }
+            if (hoverPoi != null && InView(hoverPoi.Lat, hoverPoi.Lng, view))
+                DrawTag(g, Poi.KindName(hoverPoi.Kind) + ": " + hoverPoi.Name, ToScreen(hoverPoi.Lat, hoverPoi.Lng), PoiColor(hoverPoi.Kind));
         }
 
         // Biểu tượng: ô tròn màu theo loại, có hình trắng ở giữa
@@ -851,7 +864,7 @@ namespace TestMap.Mapping
             if (RoadNet == null || RoadNet.Blocked == null) return;
             Color red = Color.FromArgb(220, 38, 38);
 
-            if (BlockMode && hoverEdge >= 0 && hoverEdge < RoadNet.Edges.Count)
+            if ((BlockMode || ShowWeights) && hoverEdge >= 0 && hoverEdge < RoadNet.Edges.Count)
                 using (Pen hp = RoundPen(Color.FromArgb(150, 234, 88, 12), 7f * scale + 3f))
                     g.DrawLines(hp, EdgePoints(hoverEdge).ToArray());
 
@@ -876,6 +889,139 @@ namespace TestMap.Mapping
                     }
                 }
             }
+        }
+
+        // ----- Đồ thị: số đỉnh và trọng số từng đoạn đường -----
+        private static string ClassName(int c)
+        {
+            switch (c)
+            {
+                case 3: return "trục chính";
+                case 2: return "đường lớn";
+                case 1: return "đường vừa";
+                default: return "đường nhỏ";
+            }
+        }
+
+        private void DrawWeights(Graphics g, RectLatLng view)
+        {
+            if (!ShowWeights || RoadNet == null) return;
+
+            var visible = new List<int>();
+            for (int ei = 0; ei < RoadNet.Edges.Count; ei++)
+                if (EdgeInView(RoadNet.Edges[ei], view)) visible.Add(ei);
+
+            if (Zoom < 15 || visible.Count > 450)
+            {
+                string hint = "Phóng to thêm để thấy đỉnh và trọng số (đang có " + visible.Count + " đoạn đường trên màn hình)";
+                SizeF hs = g.MeasureString(hint, SmallFont, 10000, Fmt);
+                var hr = new RectangleF((Width - hs.Width) / 2 - 8, 14, hs.Width + 16, hs.Height + 8);
+                using (GraphicsPath hp = RoundRect(hr, 6f))
+                using (var hb = new SolidBrush(Color.FromArgb(230, 30, 41, 59)))
+                    g.FillPath(hb, hp);
+                g.DrawString(hint, SmallFont, Brushes.White, hr.X + 8, hr.Y + 4, Fmt);
+                return;
+            }
+
+            var used = new List<RectangleF>();
+            using (var navy = new SolidBrush(Color.FromArgb(15, 23, 42)))
+            using (var wbg = new SolidBrush(Color.FromArgb(240, 255, 255, 255)))
+            using (var edgePen = new Pen(Color.FromArgb(148, 163, 184), 1f))
+            {
+                // Đỉnh: vòng tròn có số, kèm tên trạm nếu giao lộ đó có trạm
+                var nodeSeen = new HashSet<int>();
+                foreach (int ei in visible)
+                {
+                    RoadEdge e = RoadNet.Edges[ei];
+                    nodeSeen.Add(e.From);
+                    nodeSeen.Add(e.To);
+                }
+                var stopAtNode = new Dictionary<int, string>();
+                foreach (BusStop st in RoadNet.Stops)
+                    if (!stopAtNode.ContainsKey(st.Node)) stopAtNode[st.Node] = st.ToString();
+
+                // Trọng số trước (chip nhỏ ở giữa đoạn đường), đỉnh vẽ đè lên
+                foreach (int ei in visible)
+                {
+                    RoadEdge e = RoadNet.Edges[ei];
+                    List<PointF> pts = EdgePoints(ei);
+                    PointF mid = MidOfPolyline(pts);
+                    string text = e.Length.ToString("0") + " m" + (e.OneWay ? " ▸" : "");
+                    SizeF ts = g.MeasureString(text, SmallFont, 10000, Fmt);
+                    var rc = new RectangleF(mid.X - ts.Width / 2 - 4, mid.Y - ts.Height / 2 - 1, ts.Width + 8, ts.Height + 2);
+                    if (Collides(rc, used)) continue;
+                    used.Add(rc);
+                    using (GraphicsPath cp = RoundRect(rc, 4f))
+                    {
+                        g.FillPath(wbg, cp);
+                        g.DrawPath(edgePen, cp);
+                    }
+                    g.DrawString(text, SmallFont, navy, rc.X + 4, rc.Y + 1, Fmt);
+                }
+
+                foreach (int n in nodeSeen)
+                {
+                    LatLng p = RoadNet.Nodes[n];
+                    PointF c = ToScreen(p.Lat, p.Lng);
+                    string id = n.ToString();
+                    SizeF ts = g.MeasureString(id, SmallFont, 10000, Fmt);
+                    float rad = Math.Max(9f, ts.Width / 2 + 3);
+                    g.FillEllipse(navy, c.X - rad, c.Y - rad, 2 * rad, 2 * rad);
+                    using (var wp = new Pen(Color.White, 1.6f)) g.DrawEllipse(wp, c.X - rad, c.Y - rad, 2 * rad, 2 * rad);
+                    g.DrawString(id, SmallFont, Brushes.White, c.X - ts.Width / 2, c.Y - ts.Height / 2 + 0.5f, Fmt);
+                    used.Add(new RectangleF(c.X - rad, c.Y - rad, 2 * rad, 2 * rad));
+                }
+                foreach (int n in nodeSeen)
+                {
+                    string name;
+                    if (!stopAtNode.TryGetValue(n, out name)) continue;
+                    LatLng p = RoadNet.Nodes[n];
+                    DrawLabel(g, name, ToScreen(p.Lat, p.Lng), StopFont, StopColor, 14f, used);
+                }
+            }
+
+            // Chú thích khi rê chuột lên một đoạn đường: nối đỉnh nào với đỉnh nào, trọng số bao nhiêu
+            if (hoverEdge >= 0 && hoverEdge < RoadNet.Edges.Count)
+            {
+                RoadEdge e = RoadNet.Edges[hoverEdge];
+                string dir = e.OneWay ? "một chiều " + e.From + " → " + e.To : "hai chiều";
+                string tip = "Đỉnh " + e.From + " — Đỉnh " + e.To + "\n" +
+                             "Trọng số: " + e.Length.ToString("0.#") + " m\n" +
+                             ClassName(e.Class) + ", " + dir;
+                SizeF ts = g.MeasureString(tip, SmallFont, 10000, Fmt);
+                var rc = new RectangleF(hoverPoint.X + 16, hoverPoint.Y + 16, ts.Width + 16, ts.Height + 10);
+                if (rc.Right > Width - 4) rc.X = hoverPoint.X - 16 - rc.Width;
+                if (rc.Bottom > Height - 4) rc.Y = hoverPoint.Y - 16 - rc.Height;
+                using (GraphicsPath tp = RoundRect(rc, 6f))
+                using (var tb = new SolidBrush(Color.FromArgb(240, 30, 41, 59)))
+                    g.FillPath(tb, tp);
+                g.DrawString(tip, SmallFont, Brushes.White, rc.X + 8, rc.Y + 5, Fmt);
+            }
+        }
+
+        // Điểm giữa (theo chiều dài) của một đường gấp khúc
+        private static PointF MidOfPolyline(List<PointF> pts)
+        {
+            double total = 0;
+            for (int i = 1; i < pts.Count; i++) total += Dist(pts[i - 1], pts[i]);
+            double half = total / 2, acc = 0;
+            for (int i = 1; i < pts.Count; i++)
+            {
+                double d = Dist(pts[i - 1], pts[i]);
+                if (acc + d >= half && d > 0)
+                {
+                    float t = (float)((half - acc) / d);
+                    return new PointF(pts[i - 1].X + (pts[i].X - pts[i - 1].X) * t, pts[i - 1].Y + (pts[i].Y - pts[i - 1].Y) * t);
+                }
+                acc += d;
+            }
+            return pts[0];
+        }
+
+        private static double Dist(PointF a, PointF b)
+        {
+            double dx = b.X - a.X, dy = b.Y - a.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
         }
 
         // ----- Lớp vẽ cho phần mô phỏng thuật toán -----

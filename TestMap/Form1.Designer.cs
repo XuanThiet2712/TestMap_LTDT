@@ -32,6 +32,13 @@ namespace TestMap
             this.busTimer = new System.Windows.Forms.Timer(this.components);
             this.liveTimer = new System.Windows.Forms.Timer(this.components);
             this.driverTimer = new System.Windows.Forms.Timer(this.components);
+            this.progressTimer = new System.Windows.Forms.Timer(this.components);
+            this.pnlProgress = new System.Windows.Forms.Panel();
+            this.pbLoad = new System.Windows.Forms.ProgressBar();
+            this.lblProgress = new System.Windows.Forms.Label();
+            this.chkWeights = new System.Windows.Forms.CheckBox();
+            this.chkNames = new System.Windows.Forms.CheckBox();
+            this.btnModel = new System.Windows.Forms.Button();
             this.pnlTop = new System.Windows.Forms.Panel();
             this.flowTop = new System.Windows.Forms.FlowLayoutPanel();
             this.cboArea = new System.Windows.Forms.ComboBox();
@@ -46,9 +53,9 @@ namespace TestMap
             this.btnLoadPoi = new System.Windows.Forms.Button();
             this.btnReload = new System.Windows.Forms.Button();
             this.btnAccount = new System.Windows.Forms.Button();
+            this.lblAccount = new System.Windows.Forms.Label();
             this.btnPoiFilter = new System.Windows.Forms.Button();
             this.btnSim = new System.Windows.Forms.Button();
-            this.lblAccount = new System.Windows.Forms.Label();
             this.btnAdmin = new System.Windows.Forms.Button();
             this.lblInfo = new System.Windows.Forms.Label();
             this.pnlSide = new System.Windows.Forms.Panel();
@@ -85,11 +92,6 @@ namespace TestMap
             this.pnlLines = new System.Windows.Forms.Panel();
             this.lstLines = new System.Windows.Forms.ListBox();
             this.lblDemoLines = new System.Windows.Forms.Label();
-            this.pnlTabs = new System.Windows.Forms.Panel();
-            this.btnTabBus = new System.Windows.Forms.Button();
-            this.btnTabShortest = new System.Windows.Forms.Button();
-            this.btnTabLines = new System.Windows.Forms.Button();
-            this.btnTabDriver = new System.Windows.Forms.Button();
             this.pnlDriver = new System.Windows.Forms.Panel();
             this.lstDriverStops = new System.Windows.Forms.ListBox();
             this.pnlDriverTop = new System.Windows.Forms.Panel();
@@ -97,6 +99,11 @@ namespace TestMap
             this.cboDriverLine = new System.Windows.Forms.ComboBox();
             this.btnShift = new System.Windows.Forms.Button();
             this.lblDriverInfo = new System.Windows.Forms.Label();
+            this.pnlTabs = new System.Windows.Forms.Panel();
+            this.btnTabBus = new System.Windows.Forms.Button();
+            this.btnTabShortest = new System.Windows.Forms.Button();
+            this.btnTabLines = new System.Windows.Forms.Button();
+            this.btnTabDriver = new System.Windows.Forms.Button();
             this.pnlPlan = new System.Windows.Forms.Panel();
             this.lblPlanTitle = new System.Windows.Forms.Label();
             this.lblA = new System.Windows.Forms.Label();
@@ -114,13 +121,14 @@ namespace TestMap
             this.btnZoomIn = new System.Windows.Forms.Button();
             this.btnZoomOut = new System.Windows.Forms.Button();
             this.mapCanvas = new TestMap.Mapping.MapCanvas();
+            this.pnlProgress.SuspendLayout();
             this.pnlTop.SuspendLayout();
             this.flowTop.SuspendLayout();
             this.pnlSide.SuspendLayout();
             this.pnlBus.SuspendLayout();
             this.pnlSteps.SuspendLayout();
-            this.pnlItinFilter.SuspendLayout();
             this.pnlStepsHeader.SuspendLayout();
+            this.pnlItinFilter.SuspendLayout();
             this.pnlShortest.SuspendLayout();
             this.pnlListTitle.SuspendLayout();
             this.pnlStats.SuspendLayout();
@@ -149,12 +157,91 @@ namespace TestMap
             // 
             // driverTimer
             // 
-            this.driverTimer.Interval = 100;
             this.driverTimer.Tick += new System.EventHandler(this.DriverTimer_Tick);
+            // 
+            // progressTimer
+            // 
+            this.progressTimer.Interval = 1500;
+            this.progressTimer.Tick += new System.EventHandler(this.progressTimer_Tick);
+            // 
+            // pnlProgress
+            // 
+            this.pnlProgress.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
+            this.pnlProgress.Controls.Add(this.pbLoad);
+            this.pnlProgress.Controls.Add(this.lblProgress);
+            this.pnlProgress.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.pnlProgress.Location = new System.Drawing.Point(0, 726);
+            this.pnlProgress.Name = "pnlProgress";
+            this.pnlProgress.Padding = new System.Windows.Forms.Padding(12, 5, 12, 5);
+            this.pnlProgress.Size = new System.Drawing.Size(1340, 24);
+            this.pnlProgress.TabIndex = 4;
+            // 
+            // pbLoad
+            // 
+            this.pbLoad.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pbLoad.Location = new System.Drawing.Point(12, 5);
+            this.pbLoad.Name = "pbLoad";
+            this.pbLoad.Size = new System.Drawing.Size(956, 14);
+            this.pbLoad.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
+            this.pbLoad.TabIndex = 0;
+            // 
+            // lblProgress
+            // 
+            this.lblProgress.Dock = System.Windows.Forms.DockStyle.Right;
+            this.lblProgress.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(226)))), ((int)(((byte)(232)))), ((int)(((byte)(240)))));
+            this.lblProgress.Location = new System.Drawing.Point(968, 5);
+            this.lblProgress.Name = "lblProgress";
+            this.lblProgress.Padding = new System.Windows.Forms.Padding(10, 0, 0, 0);
+            this.lblProgress.Size = new System.Drawing.Size(360, 14);
+            this.lblProgress.TabIndex = 1;
+            this.lblProgress.Text = "Sẵn sàng";
+            this.lblProgress.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // chkWeights
+            // 
+            this.chkWeights.AutoSize = true;
+            this.chkWeights.ForeColor = System.Drawing.Color.Gainsboro;
+            this.chkWeights.Location = new System.Drawing.Point(700, 80);
+            this.chkWeights.Margin = new System.Windows.Forms.Padding(0, 6, 10, 0);
+            this.chkWeights.Name = "chkWeights";
+            this.chkWeights.Size = new System.Drawing.Size(168, 24);
+            this.chkWeights.TabIndex = 11;
+            this.chkWeights.Text = "Hiện đỉnh + trọng số";
+            this.chkWeights.CheckedChanged += new System.EventHandler(this.chkWeights_CheckedChanged);
+            // 
+            // chkNames
+            // 
+            this.chkNames.AutoSize = true;
+            this.chkNames.Checked = true;
+            this.chkNames.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkNames.ForeColor = System.Drawing.Color.Gainsboro;
+            this.chkNames.Location = new System.Drawing.Point(878, 80);
+            this.chkNames.Margin = new System.Windows.Forms.Padding(0, 6, 10, 0);
+            this.chkNames.Name = "chkNames";
+            this.chkNames.Size = new System.Drawing.Size(194, 24);
+            this.chkNames.TabIndex = 12;
+            this.chkNames.Text = "Hiện tên địa điểm cụ thể";
+            this.chkNames.CheckedChanged += new System.EventHandler(this.chkNames_CheckedChanged);
+            // 
+            // btnModel
+            // 
+            this.btnModel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(79)))), ((int)(((byte)(70)))), ((int)(((byte)(229)))));
+            this.btnModel.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnModel.FlatAppearance.BorderSize = 0;
+            this.btnModel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnModel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnModel.ForeColor = System.Drawing.Color.White;
+            this.btnModel.Location = new System.Drawing.Point(16, 66);
+            this.btnModel.Name = "btnModel";
+            this.btnModel.Size = new System.Drawing.Size(368, 28);
+            this.btnModel.TabIndex = 6;
+            this.btnModel.Text = "🧩 Xem sơ đồ mô hình (dễ hiểu)";
+            this.btnModel.UseVisualStyleBackColor = false;
+            this.btnModel.Click += new System.EventHandler(this.btnModel_Click);
             // 
             // pnlTop
             // 
-            this.pnlTop.BackColor = System.Drawing.Color.FromArgb(15, 23, 42);
+            this.pnlTop.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
             this.pnlTop.Controls.Add(this.flowTop);
             this.pnlTop.Dock = System.Windows.Forms.DockStyle.Top;
             this.pnlTop.Location = new System.Drawing.Point(0, 0);
@@ -164,7 +251,7 @@ namespace TestMap
             // 
             // flowTop
             // 
-            this.flowTop.BackColor = System.Drawing.Color.FromArgb(15, 23, 42);
+            this.flowTop.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
             this.flowTop.Controls.Add(this.cboArea);
             this.flowTop.Controls.Add(this.cboAlgo);
             this.flowTop.Controls.Add(this.chkStops);
@@ -180,6 +267,8 @@ namespace TestMap
             this.flowTop.Controls.Add(this.lblAccount);
             this.flowTop.Controls.Add(this.btnPoiFilter);
             this.flowTop.Controls.Add(this.btnSim);
+            this.flowTop.Controls.Add(this.chkWeights);
+            this.flowTop.Controls.Add(this.chkNames);
             this.flowTop.Controls.Add(this.btnAdmin);
             this.flowTop.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowTop.Location = new System.Drawing.Point(0, 0);
@@ -187,8 +276,6 @@ namespace TestMap
             this.flowTop.Padding = new System.Windows.Forms.Padding(12, 10, 12, 0);
             this.flowTop.Size = new System.Drawing.Size(1340, 84);
             this.flowTop.TabIndex = 0;
-            this.flowTop.WrapContents = true;
-            this.flowTop.SetFlowBreak(this.btnReload, true);
             // 
             // cboArea
             // 
@@ -197,7 +284,7 @@ namespace TestMap
             this.cboArea.Location = new System.Drawing.Point(12, 13);
             this.cboArea.Margin = new System.Windows.Forms.Padding(0, 3, 14, 0);
             this.cboArea.Name = "cboArea";
-            this.cboArea.Size = new System.Drawing.Size(180, 23);
+            this.cboArea.Size = new System.Drawing.Size(180, 28);
             this.cboArea.TabIndex = 0;
             this.cboArea.SelectionChangeCommitted += new System.EventHandler(this.cboArea_SelectionChangeCommitted);
             // 
@@ -211,8 +298,7 @@ namespace TestMap
             this.cboAlgo.Location = new System.Drawing.Point(206, 13);
             this.cboAlgo.Margin = new System.Windows.Forms.Padding(0, 3, 14, 0);
             this.cboAlgo.Name = "cboAlgo";
-            this.cboAlgo.SelectedIndex = 1;
-            this.cboAlgo.Size = new System.Drawing.Size(90, 23);
+            this.cboAlgo.Size = new System.Drawing.Size(90, 28);
             this.cboAlgo.TabIndex = 1;
             // 
             // chkStops
@@ -224,7 +310,7 @@ namespace TestMap
             this.chkStops.Location = new System.Drawing.Point(310, 16);
             this.chkStops.Margin = new System.Windows.Forms.Padding(0, 6, 10, 0);
             this.chkStops.Name = "chkStops";
-            this.chkStops.Size = new System.Drawing.Size(81, 19);
+            this.chkStops.Size = new System.Drawing.Size(97, 24);
             this.chkStops.TabIndex = 2;
             this.chkStops.Text = "Hiện trạm";
             this.chkStops.CheckedChanged += new System.EventHandler(this.chkStops_CheckedChanged);
@@ -235,10 +321,10 @@ namespace TestMap
             this.chkLines.Checked = true;
             this.chkLines.CheckState = System.Windows.Forms.CheckState.Checked;
             this.chkLines.ForeColor = System.Drawing.Color.Gainsboro;
-            this.chkLines.Location = new System.Drawing.Point(401, 16);
+            this.chkLines.Location = new System.Drawing.Point(417, 16);
             this.chkLines.Margin = new System.Windows.Forms.Padding(0, 6, 10, 0);
             this.chkLines.Name = "chkLines";
-            this.chkLines.Size = new System.Drawing.Size(84, 19);
+            this.chkLines.Size = new System.Drawing.Size(102, 24);
             this.chkLines.TabIndex = 3;
             this.chkLines.Text = "Hiện tuyến";
             this.chkLines.CheckedChanged += new System.EventHandler(this.chkView_CheckedChanged);
@@ -249,10 +335,10 @@ namespace TestMap
             this.chkBuses.Checked = true;
             this.chkBuses.CheckState = System.Windows.Forms.CheckState.Checked;
             this.chkBuses.ForeColor = System.Drawing.Color.Gainsboro;
-            this.chkBuses.Location = new System.Drawing.Point(495, 16);
+            this.chkBuses.Location = new System.Drawing.Point(529, 16);
             this.chkBuses.Margin = new System.Windows.Forms.Padding(0, 6, 10, 0);
             this.chkBuses.Name = "chkBuses";
-            this.chkBuses.Size = new System.Drawing.Size(70, 19);
+            this.chkBuses.Size = new System.Drawing.Size(82, 24);
             this.chkBuses.TabIndex = 4;
             this.chkBuses.Text = "Xe chạy";
             this.chkBuses.CheckedChanged += new System.EventHandler(this.chkView_CheckedChanged);
@@ -263,10 +349,10 @@ namespace TestMap
             this.chkPoi.Checked = true;
             this.chkPoi.CheckState = System.Windows.Forms.CheckState.Checked;
             this.chkPoi.ForeColor = System.Drawing.Color.Gainsboro;
-            this.chkPoi.Location = new System.Drawing.Point(575, 16);
+            this.chkPoi.Location = new System.Drawing.Point(621, 16);
             this.chkPoi.Margin = new System.Windows.Forms.Padding(0, 6, 10, 0);
             this.chkPoi.Name = "chkPoi";
-            this.chkPoi.Size = new System.Drawing.Size(100, 19);
+            this.chkPoi.Size = new System.Drawing.Size(125, 24);
             this.chkPoi.TabIndex = 5;
             this.chkPoi.Text = "Hiện địa điểm";
             this.chkPoi.CheckedChanged += new System.EventHandler(this.chkPoi_CheckedChanged);
@@ -275,21 +361,21 @@ namespace TestMap
             // 
             this.chkSearch.AutoSize = true;
             this.chkSearch.ForeColor = System.Drawing.Color.Gainsboro;
-            this.chkSearch.Location = new System.Drawing.Point(575, 16);
+            this.chkSearch.Location = new System.Drawing.Point(756, 16);
             this.chkSearch.Margin = new System.Windows.Forms.Padding(0, 6, 14, 0);
             this.chkSearch.Name = "chkSearch";
-            this.chkSearch.Size = new System.Drawing.Size(109, 19);
+            this.chkSearch.Size = new System.Drawing.Size(133, 24);
             this.chkSearch.TabIndex = 5;
             this.chkSearch.Text = "Xem thuật toán";
             // 
             // btnCompare
             // 
-            this.btnCompare.BackColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnCompare.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.btnCompare.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnCompare.FlatAppearance.BorderSize = 0;
             this.btnCompare.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnCompare.ForeColor = System.Drawing.Color.White;
-            this.btnCompare.Location = new System.Drawing.Point(698, 10);
+            this.btnCompare.Location = new System.Drawing.Point(903, 10);
             this.btnCompare.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
             this.btnCompare.Name = "btnCompare";
             this.btnCompare.Size = new System.Drawing.Size(76, 32);
@@ -300,12 +386,12 @@ namespace TestMap
             // 
             // btnLoadLines
             // 
-            this.btnLoadLines.BackColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnLoadLines.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.btnLoadLines.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnLoadLines.FlatAppearance.BorderSize = 0;
             this.btnLoadLines.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnLoadLines.ForeColor = System.Drawing.Color.White;
-            this.btnLoadLines.Location = new System.Drawing.Point(782, 10);
+            this.btnLoadLines.Location = new System.Drawing.Point(987, 10);
             this.btnLoadLines.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
             this.btnLoadLines.Name = "btnLoadLines";
             this.btnLoadLines.Size = new System.Drawing.Size(110, 32);
@@ -316,12 +402,12 @@ namespace TestMap
             // 
             // btnLoadPoi
             // 
-            this.btnLoadPoi.BackColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnLoadPoi.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.btnLoadPoi.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnLoadPoi.FlatAppearance.BorderSize = 0;
             this.btnLoadPoi.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnLoadPoi.ForeColor = System.Drawing.Color.White;
-            this.btnLoadPoi.Location = new System.Drawing.Point(900, 10);
+            this.btnLoadPoi.Location = new System.Drawing.Point(1105, 10);
             this.btnLoadPoi.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
             this.btnLoadPoi.Name = "btnLoadPoi";
             this.btnLoadPoi.Size = new System.Drawing.Size(118, 32);
@@ -332,12 +418,13 @@ namespace TestMap
             // 
             // btnReload
             // 
-            this.btnReload.BackColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnReload.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.btnReload.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnReload.FlatAppearance.BorderSize = 0;
             this.btnReload.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.flowTop.SetFlowBreak(this.btnReload, true);
             this.btnReload.ForeColor = System.Drawing.Color.White;
-            this.btnReload.Location = new System.Drawing.Point(900, 10);
+            this.btnReload.Location = new System.Drawing.Point(12, 42);
             this.btnReload.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
             this.btnReload.Name = "btnReload";
             this.btnReload.Size = new System.Drawing.Size(116, 32);
@@ -348,12 +435,12 @@ namespace TestMap
             // 
             // btnAccount
             // 
-            this.btnAccount.BackColor = System.Drawing.Color.FromArgb(22, 163, 74);
+            this.btnAccount.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(22)))), ((int)(((byte)(163)))), ((int)(((byte)(74)))));
             this.btnAccount.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnAccount.FlatAppearance.BorderSize = 0;
             this.btnAccount.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnAccount.ForeColor = System.Drawing.Color.White;
-            this.btnAccount.Location = new System.Drawing.Point(12, 50);
+            this.btnAccount.Location = new System.Drawing.Point(12, 74);
             this.btnAccount.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
             this.btnAccount.Name = "btnAccount";
             this.btnAccount.Size = new System.Drawing.Size(120, 32);
@@ -364,9 +451,8 @@ namespace TestMap
             // 
             // lblAccount
             // 
-            this.lblAccount.AutoSize = false;
-            this.lblAccount.ForeColor = System.Drawing.Color.FromArgb(203, 213, 225);
-            this.lblAccount.Location = new System.Drawing.Point(140, 50);
+            this.lblAccount.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(203)))), ((int)(((byte)(213)))), ((int)(((byte)(225)))));
+            this.lblAccount.Location = new System.Drawing.Point(140, 74);
             this.lblAccount.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
             this.lblAccount.Name = "lblAccount";
             this.lblAccount.Size = new System.Drawing.Size(300, 32);
@@ -376,12 +462,12 @@ namespace TestMap
             // 
             // btnPoiFilter
             // 
-            this.btnPoiFilter.BackColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnPoiFilter.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.btnPoiFilter.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnPoiFilter.FlatAppearance.BorderSize = 0;
             this.btnPoiFilter.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnPoiFilter.ForeColor = System.Drawing.Color.White;
-            this.btnPoiFilter.Location = new System.Drawing.Point(0, 0);
+            this.btnPoiFilter.Location = new System.Drawing.Point(448, 74);
             this.btnPoiFilter.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
             this.btnPoiFilter.Name = "btnPoiFilter";
             this.btnPoiFilter.Size = new System.Drawing.Size(118, 32);
@@ -392,12 +478,12 @@ namespace TestMap
             // 
             // btnSim
             // 
-            this.btnSim.BackColor = System.Drawing.Color.FromArgb(79, 70, 229);
+            this.btnSim.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(79)))), ((int)(((byte)(70)))), ((int)(((byte)(229)))));
             this.btnSim.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnSim.FlatAppearance.BorderSize = 0;
             this.btnSim.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSim.ForeColor = System.Drawing.Color.White;
-            this.btnSim.Location = new System.Drawing.Point(0, 0);
+            this.btnSim.Location = new System.Drawing.Point(574, 74);
             this.btnSim.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
             this.btnSim.Name = "btnSim";
             this.btnSim.Size = new System.Drawing.Size(118, 32);
@@ -408,29 +494,28 @@ namespace TestMap
             // 
             // btnAdmin
             // 
-            this.btnAdmin.BackColor = System.Drawing.Color.FromArgb(180, 83, 9);
+            this.btnAdmin.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(180)))), ((int)(((byte)(83)))), ((int)(((byte)(9)))));
             this.btnAdmin.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnAdmin.FlatAppearance.BorderSize = 0;
             this.btnAdmin.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnAdmin.ForeColor = System.Drawing.Color.White;
-            this.btnAdmin.Location = new System.Drawing.Point(508, 50);
+            this.btnAdmin.Location = new System.Drawing.Point(1082, 74);
             this.btnAdmin.Margin = new System.Windows.Forms.Padding(0);
             this.btnAdmin.Name = "btnAdmin";
             this.btnAdmin.Size = new System.Drawing.Size(92, 32);
             this.btnAdmin.TabIndex = 9;
             this.btnAdmin.Text = "Quản trị";
-            this.btnAdmin.Visible = false;
             this.btnAdmin.UseVisualStyleBackColor = false;
+            this.btnAdmin.Visible = false;
             this.btnAdmin.Click += new System.EventHandler(this.btnAdmin_Click);
             // 
             // lblInfo
             // 
             this.lblInfo.AutoEllipsis = true;
-            this.lblInfo.BackColor = System.Drawing.Color.FromArgb(15, 23, 42);
+            this.lblInfo.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
             this.lblInfo.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.lblInfo.ForeColor = System.Drawing.Color.FromArgb(203, 213, 225);
+            this.lblInfo.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(203)))), ((int)(((byte)(213)))), ((int)(((byte)(225)))));
             this.lblInfo.Location = new System.Drawing.Point(0, 750);
-            this.lblInfo.AutoSize = false;
             this.lblInfo.Name = "lblInfo";
             this.lblInfo.Padding = new System.Windows.Forms.Padding(12, 0, 12, 0);
             this.lblInfo.Size = new System.Drawing.Size(1340, 30);
@@ -440,7 +525,7 @@ namespace TestMap
             // 
             // pnlSide
             // 
-            this.pnlSide.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
+            this.pnlSide.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
             this.pnlSide.Controls.Add(this.pnlBus);
             this.pnlSide.Controls.Add(this.pnlShortest);
             this.pnlSide.Controls.Add(this.pnlLines);
@@ -450,12 +535,12 @@ namespace TestMap
             this.pnlSide.Dock = System.Windows.Forms.DockStyle.Right;
             this.pnlSide.Location = new System.Drawing.Point(940, 84);
             this.pnlSide.Name = "pnlSide";
-            this.pnlSide.Size = new System.Drawing.Size(400, 666);
+            this.pnlSide.Size = new System.Drawing.Size(400, 642);
             this.pnlSide.TabIndex = 1;
             // 
-            // pnlBus  (tab 1: gợi ý xe buýt)
+            // pnlBus
             // 
-            this.pnlBus.BackColor = System.Drawing.Color.FromArgb(241, 245, 249);
+            this.pnlBus.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(241)))), ((int)(((byte)(245)))), ((int)(((byte)(249)))));
             this.pnlBus.Controls.Add(this.lstItins);
             this.pnlBus.Controls.Add(this.pnlSteps);
             this.pnlBus.Controls.Add(this.lblItinMsg);
@@ -464,39 +549,39 @@ namespace TestMap
             this.pnlBus.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlBus.Location = new System.Drawing.Point(0, 238);
             this.pnlBus.Name = "pnlBus";
-            this.pnlBus.Size = new System.Drawing.Size(400, 460);
+            this.pnlBus.Size = new System.Drawing.Size(400, 404);
             this.pnlBus.TabIndex = 4;
             // 
             // lstItins
             // 
-            this.lstItins.BackColor = System.Drawing.Color.FromArgb(241, 245, 249);
+            this.lstItins.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(241)))), ((int)(((byte)(245)))), ((int)(((byte)(249)))));
             this.lstItins.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.lstItins.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lstItins.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.lstItins.FormattingEnabled = true;
             this.lstItins.IntegralHeight = false;
             this.lstItins.ItemHeight = 168;
-            this.lstItins.Location = new System.Drawing.Point(0, 50);
+            this.lstItins.Location = new System.Drawing.Point(0, 210);
             this.lstItins.Name = "lstItins";
-            this.lstItins.Size = new System.Drawing.Size(400, 210);
+            this.lstItins.Size = new System.Drawing.Size(400, 0);
             this.lstItins.TabIndex = 0;
             this.lstItins.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.lstItins_DrawItem);
             this.lstItins.SelectedIndexChanged += new System.EventHandler(this.lstItins_SelectedIndexChanged);
             // 
             // pnlSteps
             // 
-            this.pnlSteps.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
+            this.pnlSteps.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
             this.pnlSteps.Controls.Add(this.lstSteps);
             this.pnlSteps.Controls.Add(this.pnlStepsHeader);
             this.pnlSteps.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.pnlSteps.Location = new System.Drawing.Point(0, 260);
+            this.pnlSteps.Location = new System.Drawing.Point(0, 204);
             this.pnlSteps.Name = "pnlSteps";
             this.pnlSteps.Size = new System.Drawing.Size(400, 200);
             this.pnlSteps.TabIndex = 1;
             // 
             // lstSteps
             // 
-            this.lstSteps.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
+            this.lstSteps.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
             this.lstSteps.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.lstSteps.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lstSteps.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
@@ -512,7 +597,7 @@ namespace TestMap
             // 
             // pnlStepsHeader
             // 
-            this.pnlStepsHeader.BackColor = System.Drawing.Color.FromArgb(226, 232, 240);
+            this.pnlStepsHeader.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(226)))), ((int)(((byte)(232)))), ((int)(((byte)(240)))));
             this.pnlStepsHeader.Controls.Add(this.lblStepsTitle);
             this.pnlStepsHeader.Controls.Add(this.lnkCopyBus);
             this.pnlStepsHeader.Dock = System.Windows.Forms.DockStyle.Top;
@@ -525,9 +610,8 @@ namespace TestMap
             // 
             this.lblStepsTitle.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lblStepsTitle.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
-            this.lblStepsTitle.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.lblStepsTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.lblStepsTitle.Location = new System.Drawing.Point(0, 0);
-            this.lblStepsTitle.AutoSize = false;
             this.lblStepsTitle.Name = "lblStepsTitle";
             this.lblStepsTitle.Size = new System.Drawing.Size(322, 28);
             this.lblStepsTitle.TabIndex = 1;
@@ -536,10 +620,9 @@ namespace TestMap
             // 
             // lnkCopyBus
             // 
-            this.lnkCopyBus.ActiveLinkColor = System.Drawing.Color.FromArgb(15, 23, 42);
-            this.lnkCopyBus.AutoSize = false;
+            this.lnkCopyBus.ActiveLinkColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
             this.lnkCopyBus.Dock = System.Windows.Forms.DockStyle.Right;
-            this.lnkCopyBus.LinkColor = System.Drawing.Color.FromArgb(37, 99, 235);
+            this.lnkCopyBus.LinkColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(99)))), ((int)(((byte)(235)))));
             this.lnkCopyBus.Location = new System.Drawing.Point(322, 0);
             this.lnkCopyBus.Name = "lnkCopyBus";
             this.lnkCopyBus.Size = new System.Drawing.Size(78, 28);
@@ -549,26 +632,39 @@ namespace TestMap
             this.lnkCopyBus.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.lnkCopyBus.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.lnkCopyBus_LinkClicked);
             // 
-            // pnlItinFilter  (bảng lọc / sắp xếp gợi ý)
+            // lblItinMsg
             // 
-            this.pnlItinFilter.BackColor = System.Drawing.Color.FromArgb(226, 232, 240);
+            this.lblItinMsg.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(241)))), ((int)(((byte)(245)))), ((int)(((byte)(249)))));
+            this.lblItinMsg.Dock = System.Windows.Forms.DockStyle.Top;
+            this.lblItinMsg.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
+            this.lblItinMsg.Location = new System.Drawing.Point(0, 160);
+            this.lblItinMsg.Name = "lblItinMsg";
+            this.lblItinMsg.Padding = new System.Windows.Forms.Padding(16, 8, 16, 0);
+            this.lblItinMsg.Size = new System.Drawing.Size(400, 50);
+            this.lblItinMsg.TabIndex = 2;
+            this.lblItinMsg.Text = "Chọn điểm đi và điểm đến (bấm vào trạm trên bản đồ) để xem các cách đi bằng xe bu" +
+    "ýt.";
+            // 
+            // pnlItinFilter
+            // 
+            this.pnlItinFilter.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(226)))), ((int)(((byte)(232)))), ((int)(((byte)(240)))));
             this.pnlItinFilter.Controls.Add(this.lblSort);
             this.pnlItinFilter.Controls.Add(this.cboItinSort);
             this.pnlItinFilter.Controls.Add(this.lblItinCount);
             this.pnlItinFilter.Controls.Add(this.lblWalkLimit);
             this.pnlItinFilter.Controls.Add(this.cboWalkLimit);
             this.pnlItinFilter.Controls.Add(this.chkWalkSuggest);
+            this.pnlItinFilter.Controls.Add(this.btnModel);
             this.pnlItinFilter.Dock = System.Windows.Forms.DockStyle.Top;
-            this.pnlItinFilter.Location = new System.Drawing.Point(0, 50);
+            this.pnlItinFilter.Location = new System.Drawing.Point(0, 58);
             this.pnlItinFilter.Name = "pnlItinFilter";
-            this.pnlItinFilter.Size = new System.Drawing.Size(400, 68);
+            this.pnlItinFilter.Size = new System.Drawing.Size(400, 102);
             this.pnlItinFilter.TabIndex = 4;
             // 
             // lblSort
             // 
-            this.lblSort.AutoSize = false;
             this.lblSort.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
-            this.lblSort.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.lblSort.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.lblSort.Location = new System.Drawing.Point(16, 9);
             this.lblSort.Name = "lblSort";
             this.lblSort.Size = new System.Drawing.Size(70, 20);
@@ -586,15 +682,13 @@ namespace TestMap
             "Ít đi bộ nhất"});
             this.cboItinSort.Location = new System.Drawing.Point(90, 6);
             this.cboItinSort.Name = "cboItinSort";
-            this.cboItinSort.SelectedIndex = 0;
-            this.cboItinSort.Size = new System.Drawing.Size(140, 23);
+            this.cboItinSort.Size = new System.Drawing.Size(140, 28);
             this.cboItinSort.TabIndex = 1;
             this.cboItinSort.SelectedIndexChanged += new System.EventHandler(this.cboItinSort_SelectedIndexChanged);
             // 
             // lblItinCount
             // 
-            this.lblItinCount.AutoSize = false;
-            this.lblItinCount.ForeColor = System.Drawing.Color.FromArgb(100, 116, 139);
+            this.lblItinCount.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
             this.lblItinCount.Location = new System.Drawing.Point(240, 9);
             this.lblItinCount.Name = "lblItinCount";
             this.lblItinCount.Size = new System.Drawing.Size(144, 20);
@@ -603,9 +697,8 @@ namespace TestMap
             // 
             // lblWalkLimit
             // 
-            this.lblWalkLimit.AutoSize = false;
             this.lblWalkLimit.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
-            this.lblWalkLimit.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.lblWalkLimit.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.lblWalkLimit.Location = new System.Drawing.Point(16, 39);
             this.lblWalkLimit.Name = "lblWalkLimit";
             this.lblWalkLimit.Size = new System.Drawing.Size(70, 20);
@@ -624,8 +717,7 @@ namespace TestMap
             "1200 m"});
             this.cboWalkLimit.Location = new System.Drawing.Point(90, 36);
             this.cboWalkLimit.Name = "cboWalkLimit";
-            this.cboWalkLimit.SelectedIndex = 0;
-            this.cboWalkLimit.Size = new System.Drawing.Size(90, 23);
+            this.cboWalkLimit.Size = new System.Drawing.Size(90, 28);
             this.cboWalkLimit.TabIndex = 4;
             this.cboWalkLimit.SelectedIndexChanged += new System.EventHandler(this.cboWalkLimit_SelectedIndexChanged);
             // 
@@ -634,57 +726,44 @@ namespace TestMap
             this.chkWalkSuggest.AutoSize = true;
             this.chkWalkSuggest.Checked = true;
             this.chkWalkSuggest.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkWalkSuggest.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.chkWalkSuggest.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.chkWalkSuggest.Location = new System.Drawing.Point(196, 38);
             this.chkWalkSuggest.Name = "chkWalkSuggest";
-            this.chkWalkSuggest.Size = new System.Drawing.Size(150, 19);
+            this.chkWalkSuggest.Size = new System.Drawing.Size(211, 24);
             this.chkWalkSuggest.TabIndex = 5;
-            this.chkWalkSuggest.Text = "Gợi ý đi bộ (khi không có xe)";
+            this.chkWalkSuggest.Text = "Gợi ý đi bộ khi không có xe";
             this.chkWalkSuggest.CheckedChanged += new System.EventHandler(this.chkWalkSuggest_CheckedChanged);
             // 
-            // lblItinMsg
+            // lblDemoBus
             // 
-            this.lblItinMsg.BackColor = System.Drawing.Color.FromArgb(241, 245, 249);
-            this.lblItinMsg.Dock = System.Windows.Forms.DockStyle.Top;
-            this.lblItinMsg.ForeColor = System.Drawing.Color.FromArgb(100, 116, 139);
-            this.lblItinMsg.Location = new System.Drawing.Point(0, 0);
-            this.lblItinMsg.AutoSize = false;
-            this.lblItinMsg.Name = "lblItinMsg";
-            this.lblItinMsg.Padding = new System.Windows.Forms.Padding(16, 8, 16, 0);
-            this.lblItinMsg.Size = new System.Drawing.Size(400, 50);
-            this.lblItinMsg.TabIndex = 2;
-            this.lblItinMsg.Text = "Chọn điểm đi và điểm đến (bấm vào trạm trên bản đồ) để xem các cách đi bằng xe buýt.";
-            // 
-            // lblDemoBus  (dải cảnh báo vàng, chỉ hiện khi đang dùng tuyến demo)
-            // 
-            this.lblDemoBus.BackColor = System.Drawing.Color.FromArgb(254, 243, 199);
+            this.lblDemoBus.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(254)))), ((int)(((byte)(243)))), ((int)(((byte)(199)))));
             this.lblDemoBus.Dock = System.Windows.Forms.DockStyle.Top;
             this.lblDemoBus.Font = new System.Drawing.Font("Segoe UI", 8.5F);
-            this.lblDemoBus.ForeColor = System.Drawing.Color.FromArgb(146, 64, 14);
+            this.lblDemoBus.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(146)))), ((int)(((byte)(64)))), ((int)(((byte)(14)))));
             this.lblDemoBus.Location = new System.Drawing.Point(0, 0);
-            this.lblDemoBus.AutoSize = false;
             this.lblDemoBus.Name = "lblDemoBus";
             this.lblDemoBus.Padding = new System.Windows.Forms.Padding(14, 8, 14, 6);
             this.lblDemoBus.Size = new System.Drawing.Size(400, 58);
             this.lblDemoBus.TabIndex = 3;
-            this.lblDemoBus.Text = "Đang dùng tuyến DEMO (tự tạo, số tuyến D1, D2...). Bấm \"Tải tuyến thật\" ở thanh trên để lấy tuyến xe buýt thật từ OpenStreetMap.";
+            this.lblDemoBus.Text = "Đang dùng tuyến DEMO (tự tạo, số tuyến D1, D2...). Bấm \"Tải tuyến thật\" ở thanh t" +
+    "rên để lấy tuyến xe buýt thật từ OpenStreetMap.";
             this.lblDemoBus.Visible = false;
             // 
-            // pnlShortest  (tab 2: đường ngắn nhất)
+            // pnlShortest
             // 
-            this.pnlShortest.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
+            this.pnlShortest.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
             this.pnlShortest.Controls.Add(this.lstStops);
             this.pnlShortest.Controls.Add(this.pnlListTitle);
             this.pnlShortest.Controls.Add(this.pnlStats);
             this.pnlShortest.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlShortest.Location = new System.Drawing.Point(0, 238);
             this.pnlShortest.Name = "pnlShortest";
-            this.pnlShortest.Size = new System.Drawing.Size(400, 460);
+            this.pnlShortest.Size = new System.Drawing.Size(400, 404);
             this.pnlShortest.TabIndex = 5;
             // 
             // lstStops
             // 
-            this.lstStops.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
+            this.lstStops.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
             this.lstStops.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.lstStops.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lstStops.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
@@ -693,14 +772,14 @@ namespace TestMap
             this.lstStops.ItemHeight = 46;
             this.lstStops.Location = new System.Drawing.Point(0, 172);
             this.lstStops.Name = "lstStops";
-            this.lstStops.Size = new System.Drawing.Size(400, 288);
+            this.lstStops.Size = new System.Drawing.Size(400, 232);
             this.lstStops.TabIndex = 0;
             this.lstStops.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.lstStops_DrawItem);
             this.lstStops.SelectedIndexChanged += new System.EventHandler(this.lstStops_SelectedIndexChanged);
             // 
             // pnlListTitle
             // 
-            this.pnlListTitle.BackColor = System.Drawing.Color.FromArgb(226, 232, 240);
+            this.pnlListTitle.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(226)))), ((int)(((byte)(232)))), ((int)(((byte)(240)))));
             this.pnlListTitle.Controls.Add(this.lblListTitle);
             this.pnlListTitle.Controls.Add(this.lnkCopy);
             this.pnlListTitle.Dock = System.Windows.Forms.DockStyle.Top;
@@ -713,9 +792,8 @@ namespace TestMap
             // 
             this.lblListTitle.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lblListTitle.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
-            this.lblListTitle.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.lblListTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.lblListTitle.Location = new System.Drawing.Point(0, 0);
-            this.lblListTitle.AutoSize = false;
             this.lblListTitle.Name = "lblListTitle";
             this.lblListTitle.Size = new System.Drawing.Size(322, 30);
             this.lblListTitle.TabIndex = 1;
@@ -724,10 +802,9 @@ namespace TestMap
             // 
             // lnkCopy
             // 
-            this.lnkCopy.ActiveLinkColor = System.Drawing.Color.FromArgb(15, 23, 42);
-            this.lnkCopy.AutoSize = false;
+            this.lnkCopy.ActiveLinkColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
             this.lnkCopy.Dock = System.Windows.Forms.DockStyle.Right;
-            this.lnkCopy.LinkColor = System.Drawing.Color.FromArgb(37, 99, 235);
+            this.lnkCopy.LinkColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(99)))), ((int)(((byte)(235)))));
             this.lnkCopy.Location = new System.Drawing.Point(322, 0);
             this.lnkCopy.Name = "lnkCopy";
             this.lnkCopy.Size = new System.Drawing.Size(78, 30);
@@ -739,7 +816,7 @@ namespace TestMap
             // 
             // pnlStats
             // 
-            this.pnlStats.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
+            this.pnlStats.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
             this.pnlStats.Controls.Add(this.lblDist);
             this.pnlStats.Controls.Add(this.lblDistCap);
             this.pnlStats.Controls.Add(this.lblTime);
@@ -757,9 +834,8 @@ namespace TestMap
             // lblDist
             // 
             this.lblDist.Font = new System.Drawing.Font("Segoe UI", 15F, System.Drawing.FontStyle.Bold);
-            this.lblDist.ForeColor = System.Drawing.Color.FromArgb(15, 23, 42);
+            this.lblDist.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
             this.lblDist.Location = new System.Drawing.Point(16, 10);
-            this.lblDist.AutoSize = false;
             this.lblDist.Name = "lblDist";
             this.lblDist.Size = new System.Drawing.Size(104, 32);
             this.lblDist.TabIndex = 0;
@@ -767,10 +843,9 @@ namespace TestMap
             // 
             // lblDistCap
             // 
-            this.lblDistCap.ForeColor = System.Drawing.Color.FromArgb(100, 116, 139);
             this.lblDistCap.Font = new System.Drawing.Font("Segoe UI", 8.5F);
+            this.lblDistCap.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
             this.lblDistCap.Location = new System.Drawing.Point(16, 42);
-            this.lblDistCap.AutoSize = false;
             this.lblDistCap.Name = "lblDistCap";
             this.lblDistCap.Size = new System.Drawing.Size(104, 20);
             this.lblDistCap.TabIndex = 1;
@@ -779,9 +854,8 @@ namespace TestMap
             // lblTime
             // 
             this.lblTime.Font = new System.Drawing.Font("Segoe UI", 15F, System.Drawing.FontStyle.Bold);
-            this.lblTime.ForeColor = System.Drawing.Color.FromArgb(15, 23, 42);
+            this.lblTime.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
             this.lblTime.Location = new System.Drawing.Point(126, 10);
-            this.lblTime.AutoSize = false;
             this.lblTime.Name = "lblTime";
             this.lblTime.Size = new System.Drawing.Size(104, 32);
             this.lblTime.TabIndex = 2;
@@ -789,10 +863,9 @@ namespace TestMap
             // 
             // lblTimeCap
             // 
-            this.lblTimeCap.ForeColor = System.Drawing.Color.FromArgb(100, 116, 139);
             this.lblTimeCap.Font = new System.Drawing.Font("Segoe UI", 8.5F);
+            this.lblTimeCap.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
             this.lblTimeCap.Location = new System.Drawing.Point(126, 42);
-            this.lblTimeCap.AutoSize = false;
             this.lblTimeCap.Name = "lblTimeCap";
             this.lblTimeCap.Size = new System.Drawing.Size(104, 20);
             this.lblTimeCap.TabIndex = 3;
@@ -801,9 +874,8 @@ namespace TestMap
             // lblStopCount
             // 
             this.lblStopCount.Font = new System.Drawing.Font("Segoe UI", 15F, System.Drawing.FontStyle.Bold);
-            this.lblStopCount.ForeColor = System.Drawing.Color.FromArgb(15, 23, 42);
+            this.lblStopCount.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
             this.lblStopCount.Location = new System.Drawing.Point(236, 10);
-            this.lblStopCount.AutoSize = false;
             this.lblStopCount.Name = "lblStopCount";
             this.lblStopCount.Size = new System.Drawing.Size(104, 32);
             this.lblStopCount.TabIndex = 4;
@@ -811,10 +883,9 @@ namespace TestMap
             // 
             // lblStopCountCap
             // 
-            this.lblStopCountCap.ForeColor = System.Drawing.Color.FromArgb(100, 116, 139);
             this.lblStopCountCap.Font = new System.Drawing.Font("Segoe UI", 8.5F);
+            this.lblStopCountCap.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
             this.lblStopCountCap.Location = new System.Drawing.Point(236, 42);
-            this.lblStopCountCap.AutoSize = false;
             this.lblStopCountCap.Name = "lblStopCountCap";
             this.lblStopCountCap.Size = new System.Drawing.Size(104, 20);
             this.lblStopCountCap.TabIndex = 5;
@@ -823,16 +894,15 @@ namespace TestMap
             // lblVisited
             // 
             this.lblVisited.Font = new System.Drawing.Font("Segoe UI", 8.5F);
-            this.lblVisited.ForeColor = System.Drawing.Color.FromArgb(100, 116, 139);
+            this.lblVisited.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
             this.lblVisited.Location = new System.Drawing.Point(16, 66);
-            this.lblVisited.AutoSize = false;
             this.lblVisited.Name = "lblVisited";
             this.lblVisited.Size = new System.Drawing.Size(320, 20);
             this.lblVisited.TabIndex = 6;
             // 
             // btnBus
             // 
-            this.btnBus.BackColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnBus.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.btnBus.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnBus.FlatAppearance.BorderSize = 0;
             this.btnBus.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -845,20 +915,20 @@ namespace TestMap
             this.btnBus.UseVisualStyleBackColor = false;
             this.btnBus.Click += new System.EventHandler(this.btnBus_Click);
             // 
-            // pnlLines  (tab 3: các tuyến)
+            // pnlLines
             // 
-            this.pnlLines.BackColor = System.Drawing.Color.FromArgb(241, 245, 249);
+            this.pnlLines.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(241)))), ((int)(((byte)(245)))), ((int)(((byte)(249)))));
             this.pnlLines.Controls.Add(this.lstLines);
             this.pnlLines.Controls.Add(this.lblDemoLines);
             this.pnlLines.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlLines.Location = new System.Drawing.Point(0, 238);
             this.pnlLines.Name = "pnlLines";
-            this.pnlLines.Size = new System.Drawing.Size(400, 460);
+            this.pnlLines.Size = new System.Drawing.Size(400, 404);
             this.pnlLines.TabIndex = 6;
             // 
             // lstLines
             // 
-            this.lstLines.BackColor = System.Drawing.Color.FromArgb(241, 245, 249);
+            this.lstLines.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(241)))), ((int)(((byte)(245)))), ((int)(((byte)(249)))));
             this.lstLines.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.lstLines.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lstLines.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
@@ -867,55 +937,55 @@ namespace TestMap
             this.lstLines.ItemHeight = 66;
             this.lstLines.Location = new System.Drawing.Point(0, 58);
             this.lstLines.Name = "lstLines";
-            this.lstLines.Size = new System.Drawing.Size(400, 402);
+            this.lstLines.Size = new System.Drawing.Size(400, 346);
             this.lstLines.TabIndex = 0;
             this.lstLines.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.lstLines_DrawItem);
             this.lstLines.SelectedIndexChanged += new System.EventHandler(this.lstLines_SelectedIndexChanged);
             // 
-            // lblDemoLines  (dải cảnh báo vàng, chỉ hiện khi đang dùng tuyến demo)
+            // lblDemoLines
             // 
-            this.lblDemoLines.BackColor = System.Drawing.Color.FromArgb(254, 243, 199);
+            this.lblDemoLines.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(254)))), ((int)(((byte)(243)))), ((int)(((byte)(199)))));
             this.lblDemoLines.Dock = System.Windows.Forms.DockStyle.Top;
             this.lblDemoLines.Font = new System.Drawing.Font("Segoe UI", 8.5F);
-            this.lblDemoLines.ForeColor = System.Drawing.Color.FromArgb(146, 64, 14);
+            this.lblDemoLines.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(146)))), ((int)(((byte)(64)))), ((int)(((byte)(14)))));
             this.lblDemoLines.Location = new System.Drawing.Point(0, 0);
-            this.lblDemoLines.AutoSize = false;
             this.lblDemoLines.Name = "lblDemoLines";
             this.lblDemoLines.Padding = new System.Windows.Forms.Padding(14, 8, 14, 6);
             this.lblDemoLines.Size = new System.Drawing.Size(400, 58);
             this.lblDemoLines.TabIndex = 1;
-            this.lblDemoLines.Text = "Đang dùng tuyến DEMO (tự tạo, số tuyến D1, D2...). Bấm \"Tải tuyến thật\" ở thanh trên để lấy tuyến xe buýt thật từ OpenStreetMap.";
+            this.lblDemoLines.Text = "Đang dùng tuyến DEMO (tự tạo, số tuyến D1, D2...). Bấm \"Tải tuyến thật\" ở thanh t" +
+    "rên để lấy tuyến xe buýt thật từ OpenStreetMap.";
             this.lblDemoLines.Visible = false;
             // 
-            // pnlDriver  (tab 4: ca làm việc của tài xế, chỉ hiện khi đăng nhập tài xế)
+            // pnlDriver
             // 
-            this.pnlDriver.BackColor = System.Drawing.Color.FromArgb(241, 245, 249);
+            this.pnlDriver.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(241)))), ((int)(((byte)(245)))), ((int)(((byte)(249)))));
             this.pnlDriver.Controls.Add(this.lstDriverStops);
             this.pnlDriver.Controls.Add(this.pnlDriverTop);
             this.pnlDriver.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlDriver.Location = new System.Drawing.Point(0, 238);
             this.pnlDriver.Name = "pnlDriver";
-            this.pnlDriver.Size = new System.Drawing.Size(400, 428);
+            this.pnlDriver.Size = new System.Drawing.Size(400, 404);
             this.pnlDriver.TabIndex = 7;
             // 
             // lstDriverStops
             // 
-            this.lstDriverStops.BackColor = System.Drawing.Color.FromArgb(241, 245, 249);
+            this.lstDriverStops.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(241)))), ((int)(((byte)(245)))), ((int)(((byte)(249)))));
             this.lstDriverStops.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.lstDriverStops.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lstDriverStops.Font = new System.Drawing.Font("Segoe UI", 9.5F);
             this.lstDriverStops.FormattingEnabled = true;
             this.lstDriverStops.IntegralHeight = false;
-            this.lstDriverStops.ItemHeight = 17;
+            this.lstDriverStops.ItemHeight = 21;
             this.lstDriverStops.Location = new System.Drawing.Point(0, 196);
             this.lstDriverStops.Name = "lstDriverStops";
             this.lstDriverStops.SelectionMode = System.Windows.Forms.SelectionMode.None;
-            this.lstDriverStops.Size = new System.Drawing.Size(400, 232);
+            this.lstDriverStops.Size = new System.Drawing.Size(400, 208);
             this.lstDriverStops.TabIndex = 0;
             // 
             // pnlDriverTop
             // 
-            this.pnlDriverTop.BackColor = System.Drawing.Color.FromArgb(241, 245, 249);
+            this.pnlDriverTop.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(241)))), ((int)(((byte)(245)))), ((int)(((byte)(249)))));
             this.pnlDriverTop.Controls.Add(this.lblDriverTitle);
             this.pnlDriverTop.Controls.Add(this.cboDriverLine);
             this.pnlDriverTop.Controls.Add(this.btnShift);
@@ -928,9 +998,8 @@ namespace TestMap
             // 
             // lblDriverTitle
             // 
-            this.lblDriverTitle.AutoSize = false;
             this.lblDriverTitle.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
-            this.lblDriverTitle.ForeColor = System.Drawing.Color.FromArgb(100, 116, 139);
+            this.lblDriverTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
             this.lblDriverTitle.Location = new System.Drawing.Point(16, 12);
             this.lblDriverTitle.Name = "lblDriverTitle";
             this.lblDriverTitle.Size = new System.Drawing.Size(368, 20);
@@ -946,12 +1015,12 @@ namespace TestMap
             this.cboDriverLine.IntegralHeight = false;
             this.cboDriverLine.Location = new System.Drawing.Point(16, 38);
             this.cboDriverLine.Name = "cboDriverLine";
-            this.cboDriverLine.Size = new System.Drawing.Size(368, 25);
+            this.cboDriverLine.Size = new System.Drawing.Size(368, 29);
             this.cboDriverLine.TabIndex = 1;
             // 
             // btnShift
             // 
-            this.btnShift.BackColor = System.Drawing.Color.FromArgb(22, 163, 74);
+            this.btnShift.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(22)))), ((int)(((byte)(163)))), ((int)(((byte)(74)))));
             this.btnShift.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnShift.FlatAppearance.BorderSize = 0;
             this.btnShift.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -967,17 +1036,17 @@ namespace TestMap
             // 
             // lblDriverInfo
             // 
-            this.lblDriverInfo.AutoSize = false;
-            this.lblDriverInfo.ForeColor = System.Drawing.Color.FromArgb(15, 23, 42);
+            this.lblDriverInfo.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
             this.lblDriverInfo.Location = new System.Drawing.Point(16, 118);
             this.lblDriverInfo.Name = "lblDriverInfo";
             this.lblDriverInfo.Size = new System.Drawing.Size(368, 70);
             this.lblDriverInfo.TabIndex = 3;
-            this.lblDriverInfo.Text = "Chọn tuyến được phân công rồi bấm \"Bắt đầu ca\". Xe của bạn sẽ chạy dọc tuyến và dừng ở từng trạm.";
+            this.lblDriverInfo.Text = "Chọn tuyến được phân công rồi bấm \"Bắt đầu ca\". Xe của bạn sẽ chạy dọc tuyến và d" +
+    "ừng ở từng trạm.";
             // 
-            // pnlTabs  (3 nút chuyển tab)
+            // pnlTabs
             // 
-            this.pnlTabs.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
+            this.pnlTabs.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
             this.pnlTabs.Controls.Add(this.btnTabBus);
             this.pnlTabs.Controls.Add(this.btnTabShortest);
             this.pnlTabs.Controls.Add(this.btnTabLines);
@@ -990,7 +1059,7 @@ namespace TestMap
             // 
             // btnTabBus
             // 
-            this.btnTabBus.BackColor = System.Drawing.Color.FromArgb(37, 99, 235);
+            this.btnTabBus.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(99)))), ((int)(((byte)(235)))));
             this.btnTabBus.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnTabBus.FlatAppearance.BorderSize = 0;
             this.btnTabBus.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -1006,12 +1075,12 @@ namespace TestMap
             // 
             // btnTabShortest
             // 
-            this.btnTabShortest.BackColor = System.Drawing.Color.FromArgb(226, 232, 240);
+            this.btnTabShortest.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(226)))), ((int)(((byte)(232)))), ((int)(((byte)(240)))));
             this.btnTabShortest.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnTabShortest.FlatAppearance.BorderSize = 0;
             this.btnTabShortest.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnTabShortest.Font = new System.Drawing.Font("Segoe UI", 8.75F, System.Drawing.FontStyle.Bold);
-            this.btnTabShortest.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnTabShortest.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.btnTabShortest.Location = new System.Drawing.Point(112, 8);
             this.btnTabShortest.Name = "btnTabShortest";
             this.btnTabShortest.Size = new System.Drawing.Size(92, 30);
@@ -1022,12 +1091,12 @@ namespace TestMap
             // 
             // btnTabLines
             // 
-            this.btnTabLines.BackColor = System.Drawing.Color.FromArgb(226, 232, 240);
+            this.btnTabLines.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(226)))), ((int)(((byte)(232)))), ((int)(((byte)(240)))));
             this.btnTabLines.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnTabLines.FlatAppearance.BorderSize = 0;
             this.btnTabLines.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnTabLines.Font = new System.Drawing.Font("Segoe UI", 8.75F, System.Drawing.FontStyle.Bold);
-            this.btnTabLines.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnTabLines.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.btnTabLines.Location = new System.Drawing.Point(208, 8);
             this.btnTabLines.Name = "btnTabLines";
             this.btnTabLines.Size = new System.Drawing.Size(92, 30);
@@ -1038,12 +1107,12 @@ namespace TestMap
             // 
             // btnTabDriver
             // 
-            this.btnTabDriver.BackColor = System.Drawing.Color.FromArgb(226, 232, 240);
+            this.btnTabDriver.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(226)))), ((int)(((byte)(232)))), ((int)(((byte)(240)))));
             this.btnTabDriver.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnTabDriver.FlatAppearance.BorderSize = 0;
             this.btnTabDriver.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnTabDriver.Font = new System.Drawing.Font("Segoe UI", 8.75F, System.Drawing.FontStyle.Bold);
-            this.btnTabDriver.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnTabDriver.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.btnTabDriver.Location = new System.Drawing.Point(304, 8);
             this.btnTabDriver.Name = "btnTabDriver";
             this.btnTabDriver.Size = new System.Drawing.Size(80, 30);
@@ -1053,9 +1122,9 @@ namespace TestMap
             this.btnTabDriver.Visible = false;
             this.btnTabDriver.Click += new System.EventHandler(this.btnTabDriver_Click);
             // 
-            // pnlPlan  (chọn điểm đi / đến)
+            // pnlPlan
             // 
-            this.pnlPlan.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
+            this.pnlPlan.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
             this.pnlPlan.Controls.Add(this.lblPlanTitle);
             this.pnlPlan.Controls.Add(this.lblA);
             this.pnlPlan.Controls.Add(this.lblB);
@@ -1077,9 +1146,8 @@ namespace TestMap
             // lblPlanTitle
             // 
             this.lblPlanTitle.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
-            this.lblPlanTitle.ForeColor = System.Drawing.Color.FromArgb(100, 116, 139);
+            this.lblPlanTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
             this.lblPlanTitle.Location = new System.Drawing.Point(16, 12);
-            this.lblPlanTitle.AutoSize = false;
             this.lblPlanTitle.Name = "lblPlanTitle";
             this.lblPlanTitle.Size = new System.Drawing.Size(120, 20);
             this.lblPlanTitle.TabIndex = 0;
@@ -1088,9 +1156,8 @@ namespace TestMap
             // lblA
             // 
             this.lblA.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
-            this.lblA.ForeColor = System.Drawing.Color.FromArgb(22, 163, 74);
+            this.lblA.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(22)))), ((int)(((byte)(163)))), ((int)(((byte)(74)))));
             this.lblA.Location = new System.Drawing.Point(16, 40);
-            this.lblA.AutoSize = false;
             this.lblA.Name = "lblA";
             this.lblA.Size = new System.Drawing.Size(22, 24);
             this.lblA.TabIndex = 1;
@@ -1099,9 +1166,8 @@ namespace TestMap
             // lblB
             // 
             this.lblB.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
-            this.lblB.ForeColor = System.Drawing.Color.FromArgb(220, 38, 38);
+            this.lblB.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(38)))), ((int)(((byte)(38)))));
             this.lblB.Location = new System.Drawing.Point(16, 72);
-            this.lblB.AutoSize = false;
             this.lblB.Name = "lblB";
             this.lblB.Size = new System.Drawing.Size(22, 24);
             this.lblB.TabIndex = 2;
@@ -1117,7 +1183,7 @@ namespace TestMap
             this.cboFrom.IntegralHeight = false;
             this.cboFrom.Location = new System.Drawing.Point(42, 38);
             this.cboFrom.Name = "cboFrom";
-            this.cboFrom.Size = new System.Drawing.Size(292, 25);
+            this.cboFrom.Size = new System.Drawing.Size(292, 29);
             this.cboFrom.TabIndex = 3;
             this.cboFrom.SelectedIndexChanged += new System.EventHandler(this.cboFrom_SelectedIndexChanged);
             // 
@@ -1131,18 +1197,18 @@ namespace TestMap
             this.cboTo.IntegralHeight = false;
             this.cboTo.Location = new System.Drawing.Point(42, 70);
             this.cboTo.Name = "cboTo";
-            this.cboTo.Size = new System.Drawing.Size(292, 25);
+            this.cboTo.Size = new System.Drawing.Size(292, 29);
             this.cboTo.TabIndex = 4;
             this.cboTo.SelectedIndexChanged += new System.EventHandler(this.cboTo_SelectedIndexChanged);
             // 
             // btnSwap
             // 
-            this.btnSwap.BackColor = System.Drawing.Color.FromArgb(226, 232, 240);
+            this.btnSwap.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(226)))), ((int)(((byte)(232)))), ((int)(((byte)(240)))));
             this.btnSwap.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnSwap.FlatAppearance.BorderSize = 0;
             this.btnSwap.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSwap.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
-            this.btnSwap.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnSwap.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.btnSwap.Location = new System.Drawing.Point(340, 38);
             this.btnSwap.Name = "btnSwap";
             this.btnSwap.Size = new System.Drawing.Size(44, 56);
@@ -1153,12 +1219,12 @@ namespace TestMap
             // 
             // btnLocate
             // 
-            this.btnLocate.BackColor = System.Drawing.Color.FromArgb(224, 231, 255);
+            this.btnLocate.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(231)))), ((int)(((byte)(255)))));
             this.btnLocate.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnLocate.FlatAppearance.BorderSize = 0;
             this.btnLocate.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnLocate.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
-            this.btnLocate.ForeColor = System.Drawing.Color.FromArgb(37, 99, 235);
+            this.btnLocate.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(99)))), ((int)(((byte)(235)))));
             this.btnLocate.Location = new System.Drawing.Point(200, 6);
             this.btnLocate.Name = "btnLocate";
             this.btnLocate.Size = new System.Drawing.Size(184, 26);
@@ -1176,20 +1242,19 @@ namespace TestMap
             "★ Yêu thích..."});
             this.cboFav.Location = new System.Drawing.Point(190, 106);
             this.cboFav.Name = "cboFav";
-            this.cboFav.SelectedIndex = 0;
-            this.cboFav.Size = new System.Drawing.Size(140, 25);
+            this.cboFav.Size = new System.Drawing.Size(140, 29);
             this.cboFav.TabIndex = 11;
             this.cboFav.Visible = false;
             this.cboFav.SelectionChangeCommitted += new System.EventHandler(this.cboFav_SelectionChangeCommitted);
             // 
             // btnFavAdd
             // 
-            this.btnFavAdd.BackColor = System.Drawing.Color.FromArgb(254, 243, 199);
+            this.btnFavAdd.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(254)))), ((int)(((byte)(243)))), ((int)(((byte)(199)))));
             this.btnFavAdd.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnFavAdd.FlatAppearance.BorderSize = 0;
             this.btnFavAdd.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnFavAdd.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
-            this.btnFavAdd.ForeColor = System.Drawing.Color.FromArgb(146, 64, 14);
+            this.btnFavAdd.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(146)))), ((int)(((byte)(64)))), ((int)(((byte)(14)))));
             this.btnFavAdd.Location = new System.Drawing.Point(336, 105);
             this.btnFavAdd.Name = "btnFavAdd";
             this.btnFavAdd.Size = new System.Drawing.Size(48, 27);
@@ -1210,14 +1275,13 @@ namespace TestMap
             "Tối đa 3 chuyến"});
             this.cboRides.Location = new System.Drawing.Point(42, 106);
             this.cboRides.Name = "cboRides";
-            this.cboRides.SelectedIndex = 1;
-            this.cboRides.Size = new System.Drawing.Size(140, 25);
+            this.cboRides.Size = new System.Drawing.Size(140, 29);
             this.cboRides.TabIndex = 7;
             this.cboRides.SelectedIndexChanged += new System.EventHandler(this.cboRides_SelectedIndexChanged);
             // 
             // btnRun
             // 
-            this.btnRun.BackColor = System.Drawing.Color.FromArgb(37, 99, 235);
+            this.btnRun.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(99)))), ((int)(((byte)(235)))));
             this.btnRun.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnRun.FlatAppearance.BorderSize = 0;
             this.btnRun.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -1233,11 +1297,11 @@ namespace TestMap
             // 
             // btnReset
             // 
-            this.btnReset.BackColor = System.Drawing.Color.FromArgb(226, 232, 240);
+            this.btnReset.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(226)))), ((int)(((byte)(232)))), ((int)(((byte)(240)))));
             this.btnReset.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnReset.FlatAppearance.BorderSize = 0;
             this.btnReset.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnReset.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnReset.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.btnReset.Location = new System.Drawing.Point(264, 144);
             this.btnReset.Name = "btnReset";
             this.btnReset.Size = new System.Drawing.Size(120, 36);
@@ -1246,7 +1310,7 @@ namespace TestMap
             this.btnReset.UseVisualStyleBackColor = false;
             this.btnReset.Click += new System.EventHandler(this.btnReset_Click);
             // 
-            // pnlMap  (khung chứa bản đồ + 2 nút zoom nổi lên trên)
+            // pnlMap
             // 
             this.pnlMap.Controls.Add(this.btnZoomIn);
             this.pnlMap.Controls.Add(this.btnZoomOut);
@@ -1254,7 +1318,7 @@ namespace TestMap
             this.pnlMap.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlMap.Location = new System.Drawing.Point(0, 84);
             this.pnlMap.Name = "pnlMap";
-            this.pnlMap.Size = new System.Drawing.Size(940, 666);
+            this.pnlMap.Size = new System.Drawing.Size(940, 642);
             this.pnlMap.TabIndex = 0;
             // 
             // btnZoomIn
@@ -1262,12 +1326,11 @@ namespace TestMap
             this.btnZoomIn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnZoomIn.BackColor = System.Drawing.Color.White;
             this.btnZoomIn.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnZoomIn.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(203, 213, 225);
-            this.btnZoomIn.FlatAppearance.BorderSize = 1;
+            this.btnZoomIn.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(203)))), ((int)(((byte)(213)))), ((int)(((byte)(225)))));
             this.btnZoomIn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnZoomIn.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
-            this.btnZoomIn.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
-            this.btnZoomIn.Location = new System.Drawing.Point(892, 578);
+            this.btnZoomIn.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
+            this.btnZoomIn.Location = new System.Drawing.Point(892, 554);
             this.btnZoomIn.Name = "btnZoomIn";
             this.btnZoomIn.Size = new System.Drawing.Size(34, 34);
             this.btnZoomIn.TabIndex = 0;
@@ -1281,12 +1344,11 @@ namespace TestMap
             this.btnZoomOut.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnZoomOut.BackColor = System.Drawing.Color.White;
             this.btnZoomOut.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnZoomOut.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(203, 213, 225);
-            this.btnZoomOut.FlatAppearance.BorderSize = 1;
+            this.btnZoomOut.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(203)))), ((int)(((byte)(213)))), ((int)(((byte)(225)))));
             this.btnZoomOut.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnZoomOut.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
-            this.btnZoomOut.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
-            this.btnZoomOut.Location = new System.Drawing.Point(892, 618);
+            this.btnZoomOut.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
+            this.btnZoomOut.Location = new System.Drawing.Point(892, 594);
             this.btnZoomOut.Name = "btnZoomOut";
             this.btnZoomOut.Size = new System.Drawing.Size(34, 34);
             this.btnZoomOut.TabIndex = 1;
@@ -1297,11 +1359,30 @@ namespace TestMap
             // 
             // mapCanvas
             // 
+            this.mapCanvas.Bearing = 0F;
+            this.mapCanvas.CanDragMap = true;
             this.mapCanvas.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.mapCanvas.EmptyTileColor = System.Drawing.Color.Navy;
+            this.mapCanvas.GrayScaleMode = false;
+            this.mapCanvas.HelperLineOption = GMap.NET.WindowsForms.HelperLineOptions.DontShow;
+            this.mapCanvas.LevelsKeepInMemory = 5;
             this.mapCanvas.Location = new System.Drawing.Point(0, 0);
+            this.mapCanvas.MarkersEnabled = true;
+            this.mapCanvas.MaxZoom = 2;
+            this.mapCanvas.MinZoom = 2;
+            this.mapCanvas.MouseWheelZoomEnabled = true;
+            this.mapCanvas.MouseWheelZoomType = GMap.NET.MouseWheelZoomType.MousePositionAndCenter;
             this.mapCanvas.Name = "mapCanvas";
-            this.mapCanvas.Size = new System.Drawing.Size(940, 666);
+            this.mapCanvas.NegativeMode = false;
+            this.mapCanvas.PolygonsEnabled = true;
+            this.mapCanvas.RetryLoadTile = 0;
+            this.mapCanvas.RoutesEnabled = true;
+            this.mapCanvas.ScaleMode = GMap.NET.WindowsForms.ScaleModes.Integer;
+            this.mapCanvas.SelectedAreaFillColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(65)))), ((int)(((byte)(105)))), ((int)(((byte)(225)))));
+            this.mapCanvas.ShowTileGridLines = false;
+            this.mapCanvas.Size = new System.Drawing.Size(940, 642);
             this.mapCanvas.TabIndex = 2;
+            this.mapCanvas.Zoom = 0D;
             this.mapCanvas.MouseClick += new System.Windows.Forms.MouseEventHandler(this.MapCanvas_MouseClick);
             // 
             // Form1
@@ -1309,6 +1390,7 @@ namespace TestMap
             this.ClientSize = new System.Drawing.Size(1340, 780);
             this.Controls.Add(this.pnlMap);
             this.Controls.Add(this.pnlSide);
+            this.Controls.Add(this.pnlProgress);
             this.Controls.Add(this.lblInfo);
             this.Controls.Add(this.pnlTop);
             this.Font = new System.Drawing.Font("Segoe UI", 9F);
@@ -1319,14 +1401,16 @@ namespace TestMap
             this.Text = "TestMap - Gợi ý lộ trình xe buýt";
             this.Shown += new System.EventHandler(this.Form1_Shown);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Form1_KeyDown);
+            this.pnlProgress.ResumeLayout(false);
             this.pnlTop.ResumeLayout(false);
             this.flowTop.ResumeLayout(false);
             this.flowTop.PerformLayout();
             this.pnlSide.ResumeLayout(false);
             this.pnlBus.ResumeLayout(false);
             this.pnlSteps.ResumeLayout(false);
-            this.pnlItinFilter.ResumeLayout(false);
             this.pnlStepsHeader.ResumeLayout(false);
+            this.pnlItinFilter.ResumeLayout(false);
+            this.pnlItinFilter.PerformLayout();
             this.pnlShortest.ResumeLayout(false);
             this.pnlListTitle.ResumeLayout(false);
             this.pnlStats.ResumeLayout(false);
@@ -1347,6 +1431,13 @@ namespace TestMap
         private System.Windows.Forms.Timer busTimer;    // xe chạy thử dọc đường ngắn nhất
         private System.Windows.Forms.Timer liveTimer;   // xe buýt đang chạy (mô phỏng) trên các tuyến
         private System.Windows.Forms.Timer driverTimer; // xe của tài xế đang chạy ca
+        private System.Windows.Forms.Timer progressTimer; // sau khi tải xong, đưa thanh tiến trình về "Sẵn sàng"
+        private System.Windows.Forms.Panel pnlProgress;
+        private System.Windows.Forms.ProgressBar pbLoad;
+        private System.Windows.Forms.Label lblProgress;
+        private System.Windows.Forms.CheckBox chkWeights;
+        private System.Windows.Forms.CheckBox chkNames;
+        private System.Windows.Forms.Button btnModel;
 
         private System.Windows.Forms.Panel pnlMap;
         private TestMap.Mapping.MapCanvas mapCanvas;

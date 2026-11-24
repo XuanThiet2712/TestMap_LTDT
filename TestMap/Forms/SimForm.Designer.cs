@@ -46,6 +46,17 @@ namespace TestMap.Forms
             this.trkBusSpeed = new System.Windows.Forms.TrackBar();
             this.lblBusNow = new System.Windows.Forms.Label();
             this.lblBusLegend = new System.Windows.Forms.Label();
+            this.btnOpenModel = new System.Windows.Forms.Button();
+            this.tabGraph = new System.Windows.Forms.TabPage();
+            this.lblGraphHelp = new System.Windows.Forms.Label();
+            this.chkShowWeights = new System.Windows.Forms.CheckBox();
+            this.chkShowNames = new System.Windows.Forms.CheckBox();
+            this.lblNode1 = new System.Windows.Forms.Label();
+            this.txtNode1 = new System.Windows.Forms.TextBox();
+            this.lblNode2 = new System.Windows.Forms.Label();
+            this.txtNode2 = new System.Windows.Forms.TextBox();
+            this.btnLookup = new System.Windows.Forms.Button();
+            this.lblLookup = new System.Windows.Forms.Label();
             this.tabTools = new System.Windows.Forms.TabPage();
             this.lblBlockHelp = new System.Windows.Forms.Label();
             this.chkBlockMode = new System.Windows.Forms.CheckBox();
@@ -58,6 +69,7 @@ namespace TestMap.Forms
             this.tabSim.SuspendLayout();
             this.tabAlgo.SuspendLayout();
             this.tabBus.SuspendLayout();
+            this.tabGraph.SuspendLayout();
             this.tabTools.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -70,6 +82,7 @@ namespace TestMap.Forms
             // 
             this.tabSim.Controls.Add(this.tabAlgo);
             this.tabSim.Controls.Add(this.tabBus);
+            this.tabSim.Controls.Add(this.tabGraph);
             this.tabSim.Controls.Add(this.tabTools);
             this.tabSim.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabSim.Name = "tabSim";
@@ -285,6 +298,7 @@ namespace TestMap.Forms
             this.tabBus.Controls.Add(this.trkBusSpeed);
             this.tabBus.Controls.Add(this.lblBusNow);
             this.tabBus.Controls.Add(this.lblBusLegend);
+            this.tabBus.Controls.Add(this.btnOpenModel);
             this.tabBus.BackColor = System.Drawing.Color.FromArgb(255, 255, 255);
             this.tabBus.Location = new System.Drawing.Point(4, 26);
             this.tabBus.Name = "tabBus";
@@ -474,6 +488,138 @@ namespace TestMap.Forms
             this.lblBusLegend.TabIndex = 12;
             this.lblBusLegend.Text = "Trên bản đồ:  vòng cam = trạm đã xét   chấm xanh = trạm đang xét   cuối mỗi lượt hiện cách đi tìm được";
             // 
+            // btnOpenModel
+            // 
+            this.btnOpenModel.BackColor = System.Drawing.Color.FromArgb(79, 70, 229);
+            this.btnOpenModel.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnOpenModel.FlatAppearance.BorderSize = 0;
+            this.btnOpenModel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnOpenModel.ForeColor = System.Drawing.Color.FromArgb(255, 255, 255);
+            this.btnOpenModel.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
+            this.btnOpenModel.Location = new System.Drawing.Point(12, 568);
+            this.btnOpenModel.Name = "btnOpenModel";
+            this.btnOpenModel.Size = new System.Drawing.Size(368, 34);
+            this.btnOpenModel.TabIndex = 13;
+            this.btnOpenModel.Text = "🧩 Mở sơ đồ mô hình (dễ hiểu cho người xem)";
+            this.btnOpenModel.UseVisualStyleBackColor = false;
+            this.btnOpenModel.Click += new System.EventHandler(this.btnOpenModel_Click);
+            // 
+            // tabGraph
+            // 
+            this.tabGraph.Controls.Add(this.lblGraphHelp);
+            this.tabGraph.Controls.Add(this.chkShowWeights);
+            this.tabGraph.Controls.Add(this.chkShowNames);
+            this.tabGraph.Controls.Add(this.lblNode1);
+            this.tabGraph.Controls.Add(this.txtNode1);
+            this.tabGraph.Controls.Add(this.lblNode2);
+            this.tabGraph.Controls.Add(this.txtNode2);
+            this.tabGraph.Controls.Add(this.btnLookup);
+            this.tabGraph.Controls.Add(this.lblLookup);
+            this.tabGraph.BackColor = System.Drawing.Color.FromArgb(255, 255, 255);
+            this.tabGraph.Location = new System.Drawing.Point(4, 26);
+            this.tabGraph.Name = "tabGraph";
+            this.tabGraph.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
+            this.tabGraph.Size = new System.Drawing.Size(392, 610);
+            this.tabGraph.TabIndex = 2;
+            this.tabGraph.Text = "Đồ thị";
+            // 
+            // lblGraphHelp
+            // 
+            this.lblGraphHelp.AutoSize = false;
+            this.lblGraphHelp.ForeColor = System.Drawing.Color.FromArgb(100, 116, 139);
+            this.lblGraphHelp.Location = new System.Drawing.Point(12, 10);
+            this.lblGraphHelp.Name = "lblGraphHelp";
+            this.lblGraphHelp.Size = new System.Drawing.Size(368, 90);
+            this.lblGraphHelp.TabIndex = 0;
+            this.lblGraphHelp.Text = "Bản đồ đường là một ĐỒ THỊ: giao lộ là ĐỈNH, đoạn đường là CẠNH, chiều dài đoạn đường (mét) là TRỌNG SỐ. Thuật toán tìm đường cộng các trọng số này lại và chọn tổng nhỏ nhất.";
+            // 
+            // chkShowWeights
+            // 
+            this.chkShowWeights.Location = new System.Drawing.Point(12, 106);
+            this.chkShowWeights.Name = "chkShowWeights";
+            this.chkShowWeights.Size = new System.Drawing.Size(368, 24);
+            this.chkShowWeights.TabIndex = 1;
+            this.chkShowWeights.Text = "Hiện đỉnh (số) và trọng số trên bản đồ";
+            this.chkShowWeights.AutoSize = false;
+            this.chkShowWeights.CheckedChanged += new System.EventHandler(this.chkShowWeights_CheckedChanged);
+            // 
+            // chkShowNames
+            // 
+            this.chkShowNames.Location = new System.Drawing.Point(12, 134);
+            this.chkShowNames.Name = "chkShowNames";
+            this.chkShowNames.Size = new System.Drawing.Size(368, 24);
+            this.chkShowNames.TabIndex = 2;
+            this.chkShowNames.Text = "Hiện tên địa điểm cụ thể (trạm, bệnh viện, trường...)";
+            this.chkShowNames.AutoSize = false;
+            this.chkShowNames.Checked = true;
+            this.chkShowNames.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkShowNames.CheckedChanged += new System.EventHandler(this.chkShowNames_CheckedChanged);
+            // 
+            // lblNode1
+            // 
+            this.lblNode1.AutoSize = false;
+            this.lblNode1.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.lblNode1.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblNode1.Location = new System.Drawing.Point(12, 172);
+            this.lblNode1.Name = "lblNode1";
+            this.lblNode1.Size = new System.Drawing.Size(60, 20);
+            this.lblNode1.TabIndex = 3;
+            this.lblNode1.Text = "Đỉnh 1";
+            // 
+            // txtNode1
+            // 
+            this.txtNode1.Location = new System.Drawing.Point(72, 169);
+            this.txtNode1.Name = "txtNode1";
+            this.txtNode1.Size = new System.Drawing.Size(80, 23);
+            this.txtNode1.TabIndex = 4;
+            // 
+            // lblNode2
+            // 
+            this.lblNode2.AutoSize = false;
+            this.lblNode2.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.lblNode2.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblNode2.Location = new System.Drawing.Point(168, 172);
+            this.lblNode2.Name = "lblNode2";
+            this.lblNode2.Size = new System.Drawing.Size(60, 20);
+            this.lblNode2.TabIndex = 5;
+            this.lblNode2.Text = "Đỉnh 2";
+            // 
+            // txtNode2
+            // 
+            this.txtNode2.Location = new System.Drawing.Point(228, 169);
+            this.txtNode2.Name = "txtNode2";
+            this.txtNode2.Size = new System.Drawing.Size(80, 23);
+            this.txtNode2.TabIndex = 6;
+            // 
+            // btnLookup
+            // 
+            this.btnLookup.BackColor = System.Drawing.Color.FromArgb(37, 99, 235);
+            this.btnLookup.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnLookup.FlatAppearance.BorderSize = 0;
+            this.btnLookup.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnLookup.ForeColor = System.Drawing.Color.FromArgb(255, 255, 255);
+            this.btnLookup.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
+            this.btnLookup.Location = new System.Drawing.Point(12, 202);
+            this.btnLookup.Name = "btnLookup";
+            this.btnLookup.Size = new System.Drawing.Size(368, 34);
+            this.btnLookup.TabIndex = 7;
+            this.btnLookup.Text = "Tra trọng số giữa hai đỉnh";
+            this.btnLookup.UseVisualStyleBackColor = false;
+            this.btnLookup.Click += new System.EventHandler(this.btnLookup_Click);
+            // 
+            // lblLookup
+            // 
+            this.lblLookup.AutoSize = false;
+            this.lblLookup.BackColor = System.Drawing.Color.FromArgb(241, 245, 249);
+            this.lblLookup.ForeColor = System.Drawing.Color.FromArgb(15, 23, 42);
+            this.lblLookup.Font = new System.Drawing.Font("Segoe UI", 9.5F);
+            this.lblLookup.Location = new System.Drawing.Point(12, 246);
+            this.lblLookup.Name = "lblLookup";
+            this.lblLookup.Padding = new System.Windows.Forms.Padding(10, 8, 10, 8);
+            this.lblLookup.Size = new System.Drawing.Size(368, 280);
+            this.lblLookup.TabIndex = 8;
+            this.lblLookup.Text = "Gõ số đỉnh rồi bấm Tra. Để trống Đỉnh 2 thì xem các đỉnh nối với Đỉnh 1. Số đỉnh hiện trên bản đồ khi bật \"Hiện đỉnh và trọng số\" (phóng to vừa đủ).";
+            // 
             // tabTools
             // 
             this.tabTools.Controls.Add(this.lblBlockHelp);
@@ -489,7 +635,7 @@ namespace TestMap.Forms
             this.tabTools.Name = "tabTools";
             this.tabTools.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
             this.tabTools.Size = new System.Drawing.Size(392, 610);
-            this.tabTools.TabIndex = 2;
+            this.tabTools.TabIndex = 3;
             this.tabTools.Text = "Chặn đường";
             // 
             // lblBlockHelp
@@ -609,6 +755,7 @@ namespace TestMap.Forms
             this.tabSim.ResumeLayout(false);
             this.tabAlgo.ResumeLayout(false);
             this.tabBus.ResumeLayout(false);
+            this.tabGraph.ResumeLayout(false);
             this.tabTools.ResumeLayout(false);
             this.ResumeLayout(false);
         }
@@ -646,6 +793,17 @@ namespace TestMap.Forms
         private System.Windows.Forms.TrackBar trkBusSpeed;
         private System.Windows.Forms.Label lblBusNow;
         private System.Windows.Forms.Label lblBusLegend;
+        private System.Windows.Forms.Button btnOpenModel;
+        private System.Windows.Forms.TabPage tabGraph;
+        private System.Windows.Forms.Label lblGraphHelp;
+        private System.Windows.Forms.CheckBox chkShowWeights;
+        private System.Windows.Forms.CheckBox chkShowNames;
+        private System.Windows.Forms.Label lblNode1;
+        private System.Windows.Forms.TextBox txtNode1;
+        private System.Windows.Forms.Label lblNode2;
+        private System.Windows.Forms.TextBox txtNode2;
+        private System.Windows.Forms.Button btnLookup;
+        private System.Windows.Forms.Label lblLookup;
         private System.Windows.Forms.TabPage tabTools;
         private System.Windows.Forms.Label lblBlockHelp;
         private System.Windows.Forms.CheckBox chkBlockMode;

@@ -6,3 +6,4 @@ pois_seed.csv                    : dia diem mau (benh vien, truong hoc...), toa 
 users.csv, users/                : tai khoan hanh khach / tai xe va danh sach yeu thich (tu tao khi dang ky).
 driver_code.txt                  : ma dang ky tai xe (mac dinh TAIXE123, tu tao lan dau; admin tu doi).
 demo_nho                         : khu vuc demo don gian cho thay (luoi 6x5, 16 tram, 4 tuyen, 3 cay cau, co dia diem). Du lieu tu tao, khong tai lai tu OSM.
+Thanh tien trinh o duoi cung: doc du lieu hien phan tram; tai tu OpenStreetMap hien so MB da nhan.

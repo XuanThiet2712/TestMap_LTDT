@@ -77,11 +77,7 @@ namespace TestMap.Routing
                         using (Stream rs = req.GetRequestStream()) rs.Write(body, 0, body.Length);
                         using (var resp = (HttpWebResponse)req.GetResponse())
                         using (Stream s = resp.GetResponseStream())
-                        using (var ms = new MemoryStream())
-                        {
-                            s.CopyTo(ms);
-                            data = ms.ToArray();
-                        }
+                        data = ReadAll(s, progress);
                         break;
                     }
                     catch (Exception ex)
@@ -94,6 +90,28 @@ namespace TestMap.Routing
                     throw new Exception("không kết nối được máy chủ OpenStreetMap (" + (lastError != null ? lastError.Message : "") + ")");
             }
             ConvertOsm(data, outDir, progress);
+        }
+
+        // Đọc hết luồng dữ liệu, cứ ~0,3 giây báo số MB đã nhận (để người dùng thấy đang tải tới đâu)
+        private static byte[] ReadAll(Stream s, Action<string> progress)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            using (var ms = new MemoryStream())
+            {
+                var buf = new byte[32768];
+                int n;
+                long last = 0;
+                while ((n = s.Read(buf, 0, buf.Length)) > 0)
+                {
+                    ms.Write(buf, 0, n);
+                    if (progress != null && sw.ElapsedMilliseconds - last > 300)
+                    {
+                        last = sw.ElapsedMilliseconds;
+                        progress("Đã nhận " + (ms.Length / 1048576.0).ToString("0.0") + " MB từ OpenStreetMap...");
+                    }
+                }
+                return ms.ToArray();
+            }
         }
 
         // Gửi một truy vấn Overpass, thử lần lượt các máy chủ. Dùng cho việc tải tuyến xe buýt.
@@ -118,11 +136,7 @@ namespace TestMap.Routing
                     using (Stream rs = req.GetRequestStream()) rs.Write(body, 0, body.Length);
                     using (var resp = (HttpWebResponse)req.GetResponse())
                     using (Stream st = resp.GetResponseStream())
-                    using (var ms = new MemoryStream())
-                    {
-                        st.CopyTo(ms);
-                        return ms.ToArray();
-                    }
+                        return ReadAll(st, progress);
                 }
                 catch (Exception ex) { last = ex; }
             }

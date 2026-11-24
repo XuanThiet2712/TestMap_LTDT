@@ -114,7 +114,7 @@ namespace TestMap.Routing
         // ------------------------------------------------------------------
         //  ĐỌC routes.csv
         // ------------------------------------------------------------------
-        public static List<BusLine> Load(RoadGraph g, string path)
+        public static List<BusLine> Load(RoadGraph g, string path, Action<int, string> progress = null)
         {
             var inv = CultureInfo.InvariantCulture;
             var res = new List<BusLine>();
@@ -134,7 +134,7 @@ namespace TestMap.Routing
                 }
                 if (line.Stops.Count >= 2) res.Add(line);
             }
-            Prepare(g, res);
+            Prepare(g, res, progress);
             return res;
         }
 
@@ -202,7 +202,7 @@ namespace TestMap.Routing
         }
 
         // Gán màu theo số tuyến (trừ tuyến admin đã chọn màu riêng), lệch pha, dựng đường chạy
-        public static void Prepare(RoadGraph g, List<BusLine> lines)
+        public static void Prepare(RoadGraph g, List<BusLine> lines, Action<int, string> progress = null)
         {
             var colorOf = new Dictionary<string, Color>();
             for (int i = 0; i < lines.Count; i++)
@@ -220,6 +220,7 @@ namespace TestMap.Routing
                 }
                 l.Phase = (i * 0.37) % 1.0;
                 l.BuildPath(g);
+                if (progress != null) progress(100 * (i + 1) / lines.Count, "Dựng đường chạy tuyến " + (i + 1) + "/" + lines.Count);
             }
             lines.RemoveAll(l => l.Path.Points.Count < 2 || l.Length < 100);
         }

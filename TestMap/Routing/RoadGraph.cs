@@ -53,25 +53,29 @@ namespace TestMap.Routing
         // nodes.csv: dòng đầu là tiêu đề "lat,lng"; mỗi dòng sau là 1 giao lộ, chỉ số = thứ tự dòng (bắt đầu từ 0)
         // edges.csv: dòng đầu là tiêu đề "from,to,length,oneway,geometry"
         //            geometry = "lat lng;lat lng;..." (có thể để trống)
-        public static RoadGraph Load(string nodesPath, string edgesPath)
+        // progress (nếu có) nhận (phần trăm 0..100, mô tả) để hiện thanh tiến trình
+        public static RoadGraph Load(string nodesPath, string edgesPath, Action<int, string> progress = null)
         {
             var g = new RoadGraph();
             var inv = CultureInfo.InvariantCulture;
 
-            bool first = true;
-            foreach (string line in File.ReadLines(nodesPath))
+            string[] nodeRows = File.ReadAllLines(nodesPath);
+            for (int r = 1; r < nodeRows.Length; r++)
             {
-                if (first) { first = false; continue; }
+                string line = nodeRows[r];
                 if (line.Length == 0) continue;
                 string[] p = line.Split(',');
                 g.Nodes.Add(new LatLng(double.Parse(p[0], inv), double.Parse(p[1], inv)));
+                if (progress != null && r % 500 == 0) progress(30 * r / nodeRows.Length, "Đọc giao lộ " + r + "/" + nodeRows.Length);
             }
+            if (progress != null) progress(30, "Đã đọc " + g.Nodes.Count + " giao lộ");
 
-            first = true;
-            foreach (string line in File.ReadLines(edgesPath))
+            string[] edgeRows = File.ReadAllLines(edgesPath);
+            for (int r = 1; r < edgeRows.Length; r++)
             {
-                if (first) { first = false; continue; }
+                string line = edgeRows[r];
                 if (line.Length == 0) continue;
+                if (progress != null && r % 500 == 0) progress(30 + 60 * r / edgeRows.Length, "Đọc đoạn đường " + r + "/" + edgeRows.Length);
                 string[] p = line.Split(',');
 
                 var e = new RoadEdge();
@@ -102,7 +106,9 @@ namespace TestMap.Routing
                 g.Edges.Add(e);
             }
 
+            if (progress != null) progress(92, "Dựng đồ thị (" + g.Edges.Count + " đoạn đường)");
             g.BuildAdjacency();
+            if (progress != null) progress(100, "Xong đồ thị");
             return g;
         }
 

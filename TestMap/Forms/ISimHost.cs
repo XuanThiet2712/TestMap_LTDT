@@ -38,6 +38,12 @@ namespace TestMap.Forms
         void BlockRandom(int count);
         void ClearBlocked();
 
+        // Đồ thị: đỉnh, trọng số, tên địa điểm
+        bool ShowWeights { get; set; }                 // hiện số đỉnh và trọng số trên bản đồ
+        bool ShowNames { get; set; }                   // hiện tên địa điểm / trạm sớm hơn
+        string LookupGraph(string nodeA, string nodeB); // tra trọng số giữa hai đỉnh (nodeB rỗng: xem các đỉnh nối với nodeA)
+        void OpenModel();                              // mở sơ đồ mô hình cách đi xe buýt
+
         void SaveMapImage();
         void SimClose();                     // bảng mô phỏng đóng: xóa các lớp vẽ mô phỏng
         event EventHandler SimInvalidated;   // dữ liệu đổi (chặn đường, đổi điểm đi/đến...) nên mô phỏng cũ hết giá trị
