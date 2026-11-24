@@ -16,7 +16,7 @@ namespace TestMap.Routing
         {
             var res = new List<BusStop>();
             foreach (BusStop s in src)
-                res.Add(new BusStop { Lat = s.Lat, Lng = s.Lng, RawLat = s.RawLat, RawLng = s.RawLng, Node = s.Node, Name = s.Name });
+                res.Add(new BusStop { Lat = s.Lat, Lng = s.Lng, RawLat = s.RawLat, RawLng = s.RawLng, Node = s.Node, Name = s.Name, Label = s.Label });
             return res;
         }
 

@@ -46,6 +46,19 @@ namespace TestMap.Mapping
         public double BusClock;                                 // đồng hồ mô phỏng (giây)
         public const double SimSpeed = 14.0;                    // xe mô phỏng chạy m/s (nhanh hơn thật để dễ nhìn)
 
+        // ----- Địa điểm, vị trí của tôi, xe của tài xế -----
+        public List<Poi> Pois = new List<Poi>();
+        public bool ShowPois;
+        public bool HasMyLocation;                     // chấm xanh "vị trí của tôi"
+        public double MyLat, MyLng;
+        public bool MyLocationApprox;                  // true: vòng sai số to (định vị theo IP)
+        public bool HasDriver;                         // xe của tài xế đang chạy ca
+        public double DriverLat, DriverLng;
+        public string DriverText = "";
+
+        // Bấm chuột trái (không kéo) lên một địa điểm (khi không trúng trạm)
+        public event Action<Poi> PoiClicked;
+
         // Bấm chuột trái (không kéo) lên một trạm
         public event Action<int> StopClicked;
 
@@ -149,6 +162,7 @@ namespace TestMap.Mapping
             var routeLabels = new List<KeyValuePair<string, PointF>>();
 
             float r = Zoom >= 17 ? 5f : (Zoom >= 15 ? 4f : 3f);
+            DrawPois(g, view, used);
             if (ShowStops)
             {
                 using (var fill = new SolidBrush(StopColor))
@@ -209,6 +223,8 @@ namespace TestMap.Mapping
 
             // 4b. Xe buýt đang chạy (mô phỏng)
             DrawLiveBuses(g, view);
+            DrawMyLocation(g, view);
+            DrawDriver(g, view);
 
             // 5. Xe buýt chạy thử
             if (BusMeters >= 0 && Route != null && Route.Points.Count > 1)
@@ -222,15 +238,17 @@ namespace TestMap.Mapping
             {
                 BusStop s = RoadNet.Stops[hoverStop];
                 PointF p = ToScreen(s.Lat, s.Lng);
-                SizeF ts = g.MeasureString(s.Name, PinFont, 10000, Fmt);
+                string tip = s.ToString();
+                SizeF ts = g.MeasureString(tip, PinFont, 10000, Fmt);
                 var rc = new RectangleF(p.X - ts.Width / 2 - 9, p.Y - ts.Height - 22, ts.Width + 18, ts.Height + 8);
                 using (GraphicsPath path = RoundRect(rc, 5f))
                 using (var bg = new SolidBrush(Color.FromArgb(235, 15, 23, 42)))
                     g.FillPath(bg, path);
-                g.DrawString(s.Name, PinFont, Brushes.White, rc.X + 9, rc.Y + 4, Fmt);
+                g.DrawString(tip, PinFont, Brushes.White, rc.X + 9, rc.Y + 4, Fmt);
             }
 
             DrawLegend(g);
+            if (ShowPois) DrawPoiLegend(g);
             DrawAttribution(g);
         }
 
@@ -599,12 +617,170 @@ namespace TestMap.Mapping
             int dx = e.X - downPoint.X, dy = e.Y - downPoint.Y;
             if (dx * dx + dy * dy > 25) return;             // đã kéo bản đồ, không phải bấm
             int s = StopAt(e.X, e.Y, 12);
+            Poi poi = s < 0 && ShowPois ? PoiAt(e.X, e.Y, 13) : null;
             if (s >= 0) { if (StopClicked != null) StopClicked(s); }
+            else if (poi != null) { if (PoiClicked != null) PoiClicked(poi); }
             else if (MapClicked != null)
             {
                 PointLatLng p = FromLocalToLatLng(e.X, e.Y);
                 MapClicked(p.Lat, p.Lng);
             }
+        }
+
+        // =====================================================================
+        //  ĐỊA ĐIỂM (bệnh viện, trường học...), VỊ TRÍ CỦA TÔI, XE TÀI XẾ
+        // =====================================================================
+        public static Color PoiColor(PoiKind k)
+        {
+            switch (k)
+            {
+                case PoiKind.Hospital: return Color.FromArgb(220, 38, 38);
+                case PoiKind.School: return Color.FromArgb(37, 99, 235);
+                case PoiKind.University: return Color.FromArgb(79, 70, 229);
+                case PoiKind.Market: return Color.FromArgb(234, 88, 12);
+                case PoiKind.Park: return Color.FromArgb(22, 163, 74);
+                default: return Color.FromArgb(147, 51, 234);
+            }
+        }
+
+        private Poi PoiAt(int x, int y, int radius)
+        {
+            Poi best = null;
+            double bestD = radius * radius;
+            foreach (Poi p in Pois)
+            {
+                GPoint q = FromLatLngToLocal(new PointLatLng(p.Lat, p.Lng));
+                double dx = q.X - x, dy = q.Y - y, d = dx * dx + dy * dy;
+                if (d < bestD) { bestD = d; best = p; }
+            }
+            return best;
+        }
+
+        private void DrawPois(Graphics g, RectLatLng view, List<RectangleF> used)
+        {
+            if (!ShowPois || Zoom < 14) return;
+            float size = Zoom >= 16 ? 22f : (Zoom >= 15 ? 18f : 14f);
+            foreach (Poi p in Pois)
+            {
+                if (!InView(p.Lat, p.Lng, view)) continue;
+                PointF c = ToScreen(p.Lat, p.Lng);
+                DrawPoiIcon(g, p.Kind, c, size);
+                used.Add(new RectangleF(c.X - size / 2, c.Y - size / 2, size, size));
+            }
+            if (Zoom >= 16)
+                foreach (Poi p in Pois)
+                {
+                    if (!InView(p.Lat, p.Lng, view)) continue;
+                    DrawLabel(g, p.Name, ToScreen(p.Lat, p.Lng), SmallFont, PoiColor(p.Kind), size / 2 + 3f, used);
+                }
+        }
+
+        // Biểu tượng: ô tròn màu theo loại, có hình trắng ở giữa
+        public static void DrawPoiIcon(Graphics g, PoiKind kind, PointF c, float size)
+        {
+            float h = size / 2;
+            Color col = PoiColor(kind);
+            using (var shadow = new SolidBrush(Color.FromArgb(50, 0, 0, 0)))
+                g.FillEllipse(shadow, c.X - h, c.Y - h + 2, size, size);
+            using (var fill = new SolidBrush(col))
+                g.FillEllipse(fill, c.X - h, c.Y - h, size, size);
+            using (var border = new Pen(Color.White, 2f))
+                g.DrawEllipse(border, c.X - h, c.Y - h, size, size);
+
+            float u = size / 22f;            // đơn vị theo kích thước, thiết kế trên ô 22px
+            switch (kind)
+            {
+                case PoiKind.Hospital:       // chữ thập
+                    g.FillRectangle(Brushes.White, c.X - 1.8f * u, c.Y - 6 * u, 3.6f * u, 12 * u);
+                    g.FillRectangle(Brushes.White, c.X - 6 * u, c.Y - 1.8f * u, 12 * u, 3.6f * u);
+                    break;
+                case PoiKind.School:         // quyển sách
+                    using (var pen = new Pen(Color.White, 1.8f * u))
+                    {
+                        g.DrawRectangle(pen, c.X - 5.5f * u, c.Y - 4.5f * u, 11 * u, 9 * u);
+                        g.DrawLine(pen, c.X, c.Y - 4.5f * u, c.X, c.Y + 4.5f * u);
+                    }
+                    break;
+                case PoiKind.University:     // mũ tốt nghiệp
+                    g.FillPolygon(Brushes.White, new[] {
+                        new PointF(c.X, c.Y - 6 * u), new PointF(c.X + 8 * u, c.Y - 1.5f * u),
+                        new PointF(c.X, c.Y + 3 * u), new PointF(c.X - 8 * u, c.Y - 1.5f * u) });
+                    g.FillRectangle(Brushes.White, c.X - 4 * u, c.Y + 1.5f * u, 8 * u, 4 * u);
+                    break;
+                case PoiKind.Market:         // giỏ hàng
+                    g.FillPolygon(Brushes.White, new[] {
+                        new PointF(c.X - 6.5f * u, c.Y - 2 * u), new PointF(c.X + 6.5f * u, c.Y - 2 * u),
+                        new PointF(c.X + 4.5f * u, c.Y + 5 * u), new PointF(c.X - 4.5f * u, c.Y + 5 * u) });
+                    using (var pen = new Pen(Color.White, 1.6f * u))
+                        g.DrawArc(pen, c.X - 3.5f * u, c.Y - 7 * u, 7 * u, 8 * u, 180, 180);
+                    break;
+                case PoiKind.Park:           // cái cây
+                    g.FillEllipse(Brushes.White, c.X - 5 * u, c.Y - 6.5f * u, 10 * u, 9.5f * u);
+                    g.FillRectangle(Brushes.White, c.X - 1.2f * u, c.Y + 2 * u, 2.4f * u, 4.5f * u);
+                    break;
+                default:                     // ngôi sao
+                    var pts = new PointF[10];
+                    for (int i = 0; i < 10; i++)
+                    {
+                        double a = -Math.PI / 2 + i * Math.PI / 5;
+                        float rad = (i % 2 == 0 ? 7f : 3f) * u;
+                        pts[i] = new PointF(c.X + (float)Math.Cos(a) * rad, c.Y + (float)Math.Sin(a) * rad);
+                    }
+                    g.FillPolygon(Brushes.White, pts);
+                    break;
+            }
+        }
+
+        private void DrawPoiLegend(Graphics g)
+        {
+            Array kinds = Enum.GetValues(typeof(PoiKind));
+            var rc = new RectangleF(12, 72, 132, 12 + kinds.Length * 22);
+            using (GraphicsPath path = RoundRect(rc, 8f))
+            {
+                using (var bg = new SolidBrush(Color.FromArgb(235, 255, 255, 255))) g.FillPath(bg, path);
+                using (var edge = new Pen(Color.FromArgb(210, 216, 226), 1f)) g.DrawPath(edge, path);
+            }
+            float y = rc.Y + 6;
+            foreach (PoiKind k in kinds)
+            {
+                DrawPoiIcon(g, k, new PointF(rc.X + 20, y + 11), 18f);
+                using (var ink = new SolidBrush(InkColor))
+                    g.DrawString(Poi.KindName(k), SmallFont, ink, rc.X + 36, y + 3, Fmt);
+                y += 22;
+            }
+        }
+
+        private void DrawMyLocation(Graphics g, RectLatLng view)
+        {
+            if (!HasMyLocation || !InView(MyLat, MyLng, view)) return;
+            PointF c = ToScreen(MyLat, MyLng);
+            float ring = MyLocationApprox ? 34f : 20f;
+            using (var halo = new SolidBrush(Color.FromArgb(40, 37, 99, 235)))
+                g.FillEllipse(halo, c.X - ring, c.Y - ring, 2 * ring, 2 * ring);
+            using (var white = new SolidBrush(Color.White))
+                g.FillEllipse(white, c.X - 9, c.Y - 9, 18, 18);
+            using (var blue = new SolidBrush(Color.FromArgb(37, 99, 235)))
+                g.FillEllipse(blue, c.X - 6, c.Y - 6, 12, 12);
+            DrawTag(g, "Vị trí của tôi", c, Color.FromArgb(37, 99, 235));
+        }
+
+        private void DrawDriver(Graphics g, RectLatLng view)
+        {
+            if (!HasDriver || !InView(DriverLat, DriverLng, view)) return;
+            PointF c = ToScreen(DriverLat, DriverLng);
+            DrawBus(g, c);
+            DrawTag(g, string.IsNullOrEmpty(DriverText) ? "Xe của bạn" : DriverText, c, Color.FromArgb(180, 83, 9));
+        }
+
+        // Nhãn nhỏ nền màu phía trên một điểm
+        private void DrawTag(Graphics g, string text, PointF c, Color color)
+        {
+            SizeF ts = g.MeasureString(text, SmallFont, 10000, Fmt);
+            var rc = new RectangleF(c.X - ts.Width / 2 - 7, c.Y - 40, ts.Width + 14, ts.Height + 4);
+            using (GraphicsPath path = RoundRect(rc, 5f))
+            using (var bg = new SolidBrush(color))
+                g.FillPath(bg, path);
+            g.DrawString(text, SmallFont, Brushes.White, rc.X + 7, rc.Y + 2, Fmt);
         }
 
         // =====================================================================
@@ -624,7 +800,7 @@ namespace TestMap.Mapping
 
         private string StopName(int stop, string fallback)
         {
-            return stop >= 0 && stop < RoadNet.Stops.Count ? RoadNet.Stops[stop].Name : fallback;
+            return stop >= 0 && stop < RoadNet.Stops.Count ? RoadNet.Stops[stop].ToString() : fallback;
         }
 
         public static bool InView(double lat, double lng, RectLatLng v)

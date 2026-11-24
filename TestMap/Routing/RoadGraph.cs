@@ -30,8 +30,9 @@ namespace TestMap.Routing
         public double RawLat, RawLng;   // vị trí gốc trong OpenStreetMap (thường nằm trên vỉa hè, lệch đường vài chục mét)
         public int Node;                // giao lộ trong mạng đường mà trạm được gắn vào
         public string Name;
+        public string Label;            // tên hiển thị: nếu có nhiều trạm cùng tên ở chỗ khác nhau thì kèm quận / "gần ..." / số thứ tự
 
-        public override string ToString() { return Name; }
+        public override string ToString() { return string.IsNullOrEmpty(Label) ? Name : Label; }
     }
 
     // Mạng đường: giao lộ (nodes) + đoạn đường (edges)
@@ -135,6 +136,92 @@ namespace TestMap.Routing
             }
 
             RebuildStopIndex();
+        }
+
+        // Đặt tên hiển thị (Label) để phân biệt các trạm CÙNG TÊN nhưng khác địa điểm.
+        // Thứ tự thử: thêm khu vực (zone, có thể null) -> thêm "gần <trạm khác tên gần nhất>" -> thêm số thứ tự #n.
+        public void AssignLabels(Func<double, double, string> zone)
+        {
+            foreach (BusStop s in Stops) s.Label = s.Name;
+
+            var groups = new Dictionary<string, List<int>>();
+            for (int i = 0; i < Stops.Count; i++)
+            {
+                string key = (Stops[i].Name ?? "").Trim().ToLowerInvariant();
+                List<int> l;
+                if (!groups.TryGetValue(key, out l)) groups[key] = l = new List<int>();
+                l.Add(i);
+            }
+
+            foreach (List<int> g in groups.Values)
+            {
+                if (g.Count < 2) continue;
+
+                // 1. khu vực
+                var zones = new Dictionary<int, string>();
+                var distinctZones = new HashSet<string>();
+                foreach (int i in g)
+                {
+                    string z = zone != null ? zone(Stops[i].Lat, Stops[i].Lng) : null;
+                    zones[i] = z;
+                    distinctZones.Add(z ?? "");
+                }
+                if (distinctZones.Count > 1)
+                    foreach (int i in g) if (!string.IsNullOrEmpty(zones[i])) Stops[i].Label = Stops[i].Name + " (" + zones[i] + ")";
+
+                // 2. còn trùng thì thêm "gần ..."
+                foreach (List<int> same in GroupByLabel(g))
+                {
+                    if (same.Count < 2) continue;
+                    foreach (int i in same)
+                    {
+                        string near = NearestOtherName(i);
+                        if (near == null) continue;
+                        string z = zones[i];
+                        Stops[i].Label = Stops[i].Name + " (" + (distinctZones.Count > 1 && !string.IsNullOrEmpty(z) ? z + ", " : "") + "gần " + near + ")";
+                    }
+                }
+
+                // 3. vẫn trùng (hai bên đường cùng một chỗ) thì đánh số
+                foreach (List<int> same in GroupByLabel(g))
+                {
+                    if (same.Count < 2) continue;
+                    same.Sort((a, b) =>
+                    {
+                        int c = Stops[b].Lat.CompareTo(Stops[a].Lat);
+                        return c != 0 ? c : Stops[a].Lng.CompareTo(Stops[b].Lng);
+                    });
+                    for (int k = 0; k < same.Count; k++) Stops[same[k]].Label += " #" + (k + 1);
+                }
+            }
+        }
+
+        private List<List<int>> GroupByLabel(List<int> idx)
+        {
+            var d = new Dictionary<string, List<int>>();
+            foreach (int i in idx)
+            {
+                List<int> l;
+                if (!d.TryGetValue(Stops[i].Label, out l)) d[Stops[i].Label] = l = new List<int>();
+                l.Add(i);
+            }
+            return new List<List<int>>(d.Values);
+        }
+
+        // Tên của trạm gần nhất mà có tên khác (để mô tả "gần ...")
+        private string NearestOtherName(int stop)
+        {
+            double k = Math.Cos(Stops[stop].Lat * Math.PI / 180);
+            double best = double.MaxValue;
+            string res = null;
+            for (int j = 0; j < Stops.Count; j++)
+            {
+                if (string.Equals(Stops[j].Name, Stops[stop].Name, StringComparison.OrdinalIgnoreCase)) continue;
+                double dy = Stops[j].Lat - Stops[stop].Lat, dx = (Stops[j].Lng - Stops[stop].Lng) * k;
+                double d = dx * dx + dy * dy;
+                if (d < best) { best = d; res = Stops[j].Name; }
+            }
+            return res;
         }
 
         // Dựng lại bảng "giao lộ -> các trạm gắn vào nó" sau khi danh sách trạm thay đổi

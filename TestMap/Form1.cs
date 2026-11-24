@@ -41,7 +41,11 @@ namespace TestMap
         private static readonly Area[] Areas =
         {
             // Quận 1, 3, 5, 10 gộp thành MỘT bản đồ (hộp bao ngoài cùng của 4 quận).
-            new Area("hcm_q1_3_5_10", "TP.HCM - Quận 1, 3, 5, 10", 10.7490, 106.6500, 10.7900, 106.7110),
+            new Area("hcm_q1_3_5_10", "TP.HCM - Quận 1, 3, 5, 10 (gộp)", 10.7490, 106.6500, 10.7900, 106.7110),
+            new Area("hcm_q1",  "TP.HCM - Quận 1",  10.7640, 106.6850, 10.7900, 106.7110),
+            new Area("hcm_q3",  "TP.HCM - Quận 3",  10.7700, 106.6660, 10.7900, 106.6910),
+            new Area("hcm_q5",  "TP.HCM - Quận 5",  10.7490, 106.6500, 10.7640, 106.6720),
+            new Area("hcm_q10", "TP.HCM - Quận 10", 10.7620, 106.6560, 10.7800, 106.6790),
             new Area("hn_hk",   "Hà Nội - Hoàn Kiếm", 21.0170, 105.8380, 21.0380, 105.8600),
             new Area("hn_bd",   "Hà Nội - Ba Đình",   21.0280, 105.8090, 21.0480, 105.8400),
             new Area("dn_hc",   "Đà Nẵng - Hải Châu", 16.0400, 108.1900, 16.0800, 108.2300),
@@ -69,9 +73,21 @@ namespace TestMap
         private static readonly Font SmallFont = new Font("Segoe UI", 8.5f);
 
         private enum Phase { Idle, Explore, Reveal }
-        private enum Mode { Bus, Shortest, Lines }
+        private enum Mode { Bus, Shortest, Lines, Driver }
 
         private class StepItem { public Color Color; public string Title, Sub; }
+
+        // ----- Tài khoản, địa điểm, ca của tài xế -----
+        private UserAccount account;                                          // null: khách (chưa đăng nhập)
+        private List<FavPlace> favorites = new List<FavPlace>();
+        private List<Poi> pois = new List<Poi>();
+        private const double DriverSpeed = 9.0;                               // m/s (khoảng 32 km/h)
+        private const double DriverDwellSeconds = 3.0;                        // dừng ở mỗi trạm
+        private BusLine driverLine;
+        private bool onShift;
+        private double driverMeters, driverDwell;
+        private int driverNext;                                               // chỉ số (trong driverLine.Stops) của trạm sắp tới
+        private int driverListNext = -2;
 
         // ----- Trạng thái -----
         private readonly Stopwatch revealWatch = new Stopwatch();
@@ -132,6 +148,7 @@ namespace TestMap
             mapCanvas.MouseWheelZoomType = MouseWheelZoomType.MousePositionAndCenter;
             mapCanvas.StopClicked += MapCanvas_StopClicked;
             mapCanvas.MapClicked += MapCanvas_MapClicked;
+            mapCanvas.PoiClicked += MapCanvas_PoiClicked;
             GMaps.Instance.Mode = AccessMode.ServerOnly;
             mapCanvas.MapProvider = new BlankMapProvider(MapCanvas.BackgroundColor);
         }
@@ -204,8 +221,39 @@ namespace TestMap
         private void lnkCopyBus_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) { CopyItinerary(); }
         private void lnkCopy_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) { CopyRoute(); }
 
+        // Hộp tọa độ từng quận: dùng để ghi "(Q.5)" vào tên các trạm cùng tên ở bản đồ gộp
+        private static readonly object[][] Districts =
+        {
+            new object[] { "Q.1",  10.7640, 106.6850, 10.7900, 106.7110 },
+            new object[] { "Q.3",  10.7700, 106.6660, 10.7900, 106.6910 },
+            new object[] { "Q.5",  10.7490, 106.6500, 10.7640, 106.6720 },
+            new object[] { "Q.10", 10.7620, 106.6560, 10.7800, 106.6790 },
+        };
+
+        // Quận của một điểm (ước lượng theo hộp tọa độ; nếu nằm trong nhiều hộp thì lấy quận có tâm gần nhất)
+        private static string ZoneOf(double lat, double lng)
+        {
+            string best = null;
+            double bestD = double.MaxValue;
+            foreach (object[] d in Districts)
+            {
+                double s0 = (double)d[1], w0 = (double)d[2], n0 = (double)d[3], e0 = (double)d[4];
+                if (lat < s0 || lat > n0 || lng < w0 || lng > e0) continue;
+                double dy = lat - (s0 + n0) / 2, dx = lng - (w0 + e0) / 2, dist = dx * dx + dy * dy;
+                if (dist < bestD) { bestD = dist; best = (string)d[0]; }
+            }
+            return best;
+        }
+
+        // Khoảng cách xấp xỉ giữa hai điểm (mét)
+        private static double Meters(double lat1, double lng1, double lat2, double lng2)
+        {
+            double dy = (lat2 - lat1) * 111320.0, dx = (lng2 - lng1) * 111320.0 * Math.Cos((lat1 + lat2) * Math.PI / 360.0);
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+
         // =====================================================================
-        //  CHẾ ĐỘ HIỂN THỊ (3 tab)
+        //  CHẾ ĐỘ HIỂN THỊ (4 tab)
         // =====================================================================
         private void SetMode(Mode m)
         {
@@ -213,6 +261,8 @@ namespace TestMap
             pnlBus.Visible = m == Mode.Bus;
             pnlShortest.Visible = m == Mode.Shortest;
             pnlLines.Visible = m == Mode.Lines;
+            pnlDriver.Visible = m == Mode.Driver;
+            TabStyle(btnTabDriver, m == Mode.Driver);
             TabStyle(btnTabBus, m == Mode.Bus);
             TabStyle(btnTabShortest, m == Mode.Shortest);
             TabStyle(btnTabLines, m == Mode.Lines);
@@ -235,8 +285,19 @@ namespace TestMap
             mapCanvas.ShowItinerary = mode == Mode.Bus && mapCanvas.ItinLegs.Count > 0;
 
             // Tuyến vẽ nền: ở tab "Các tuyến" luôn vẽ hết; ở tab "Gợi ý" tùy ô "Hiện tuyến"; ở tab "Ngắn nhất" không vẽ
-            mapCanvas.NetLines = (mode == Mode.Lines || (mode == Mode.Bus && chkLines.Checked)) ? lines : new List<BusLine>();
-            mapCanvas.SelectedLine = mode == Mode.Lines ? selectedLine : null;
+            if (mode == Mode.Driver)
+            {
+                // Tab tài xế: chỉ vẽ tuyến đang chạy ca (chưa chạy ca thì vẽ tuyến đang chọn trong ô)
+                BusLine pick = driverLine;
+                if (pick == null && cboDriverLine.SelectedIndex >= 0 && cboDriverLine.SelectedIndex < lines.Count) pick = lines[cboDriverLine.SelectedIndex];
+                mapCanvas.NetLines = pick != null ? new List<BusLine> { pick } : new List<BusLine>();
+                mapCanvas.SelectedLine = pick;
+            }
+            else
+            {
+                mapCanvas.NetLines = (mode == Mode.Lines || (mode == Mode.Bus && chkLines.Checked)) ? lines : new List<BusLine>();
+                mapCanvas.SelectedLine = mode == Mode.Lines ? selectedLine : null;
+            }
 
             // Tuyến có xe chạy: tuyến đang chọn, hoặc các tuyến của hành trình đang xem, hoặc tất cả
             var runners = new List<BusLine>();
@@ -276,6 +337,8 @@ namespace TestMap
             cboTo.Enabled = !value;
             cboRides.Enabled = !value;
             btnReload.Enabled = !value;
+            btnLoadPoi.Enabled = !value;
+            btnLocate.Enabled = !value;
             btnLoadLines.Enabled = !value;
             btnRun.Enabled = !value;
             btnCompare.Enabled = !value;
@@ -372,6 +435,8 @@ namespace TestMap
         private void ApplyGraph(RoadGraph g, Area a, List<BusLine> ls, bool demo)
         {
             graph = g;
+            g.AssignLabels(a.Key == "hcm_q1_3_5_10" ? (Func<double, double, string>)ZoneOf : null);
+            LoadPois(a);
             mapCanvas.RoadNet = g;
             mapCanvas.StartNode = mapCanvas.EndNode = -1;
             mapCanvas.StartStop = mapCanvas.EndStop = -1;
@@ -429,6 +494,7 @@ namespace TestMap
             lstLines.Items.Add("Tất cả các tuyến");
             foreach (BusLine l in lines) lstLines.Items.Add(l.Ref);
             lstLines.SelectedIndex = 0;
+            FillDriverLines();
         }
 
         // Tải tuyến xe buýt thật của khu vực từ OpenStreetMap rồi nạp vào
@@ -498,7 +564,7 @@ namespace TestMap
                 if (graph == null) return;
 
                 var sorted = new List<BusStop>(graph.Stops);
-                sorted.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.CurrentCultureIgnoreCase));
+                sorted.Sort((x, y) => string.Compare(x.ToString(), y.ToString(), StringComparison.CurrentCultureIgnoreCase));
                 foreach (BusStop s in sorted)
                 {
                     cboFrom.Items.Add(s);
@@ -771,7 +837,7 @@ namespace TestMap
             listSub.Clear();
             for (int i = 0; i < stopsOnRoute.Count; i++)
             {
-                lstStops.Items.Add(graph.Stops[stopsOnRoute[i]].Name);
+                lstStops.Items.Add(graph.Stops[stopsOnRoute[i]].ToString());
                 listStopIndex.Add(stopsOnRoute[i]);
                 if (i == 0) listSub.Add("Điểm xuất phát");
                 else
@@ -965,7 +1031,7 @@ namespace TestMap
 
         private string StopName(int stop)
         {
-            return graph != null && stop >= 0 && stop < graph.Stops.Count ? graph.Stops[stop].Name : "điểm đã chọn";
+            return graph != null && stop >= 0 && stop < graph.Stops.Count ? graph.Stops[stop].ToString() : "điểm đã chọn";
         }
 
         private static int Minutes(double seconds)
@@ -1186,6 +1252,314 @@ namespace TestMap
         }
 
         // =====================================================================
+        //  ĐỊA ĐIỂM (bệnh viện, trường học...)
+        // =====================================================================
+        private void LoadPois(Area a)
+        {
+            try
+            {
+                pois = PoiStore.LoadFor(DataRoot, Path.Combine(DataRoot, a.Key), a.South - 0.002, a.West - 0.002, a.North + 0.002, a.East + 0.002);
+            }
+            catch { pois = new List<Poi>(); }
+            mapCanvas.Pois = pois;
+            mapCanvas.ShowPois = chkPoi.Checked;
+        }
+
+        private void chkPoi_CheckedChanged(object sender, EventArgs e)
+        {
+            mapCanvas.ShowPois = chkPoi.Checked;
+            mapCanvas.Invalidate();
+        }
+
+        private async void btnLoadPoi_Click(object sender, EventArgs e)
+        {
+            if (graph == null || busy) return;
+            Area a = Areas[cboArea.SelectedIndex];
+            RoadGraph g0 = graph;
+            btnLoadPoi.Enabled = false;
+            lblInfo.Text = "Đang tải bệnh viện, trường học, chợ, công viên... của " + a.Name + " từ OpenStreetMap...";
+            int count = 0;
+            string err = null;
+            try { count = await Task.Run(() => PoiStore.Download(a.South, a.West, a.North, a.East, Path.Combine(DataRoot, a.Key), Report)); }
+            catch (Exception ex) { err = ex.Message; }
+            btnLoadPoi.Enabled = !busy;
+            if (graph != g0) return;
+            if (err != null) { lblInfo.Text = "Không tải được địa điểm: " + err; return; }
+            LoadPois(a);
+            chkPoi.Checked = true;
+            lblInfo.Text = count == 0 ? "OpenStreetMap chưa có địa điểm nào có tên ở " + a.Name + "." : "Đã nạp " + count + " địa điểm. Bấm vào biểu tượng để chọn trạm gần đó.";
+        }
+
+        // Bấm vào biểu tượng địa điểm: chọn trạm gần nhất làm điểm đi / đến
+        private void MapCanvas_PoiClicked(Poi p)
+        {
+            if (graph == null || busy) return;
+            int st = graph.NearestStop(p.Lat, p.Lng);
+            if (st < 0) { lblInfo.Text = p.Name + ": khu vực này chưa có trạm nào."; return; }
+            double d = Meters(p.Lat, p.Lng, graph.Stops[st].Lat, graph.Stops[st].Lng);
+            string near = "Gần " + Poi.KindName(p.Kind).ToLowerInvariant() + " " + p.Name + ": trạm " + graph.Stops[st] + " (cách " + FormatDistance(d) + ").";
+            PickPoint(st, graph.Stops[st].Node);
+            if (!pickingStart) lblInfo.Text = near + " Đã chọn làm điểm đi (A). Bấm điểm đến (B).";
+            else lblInfo.Text = near;
+        }
+
+        // =====================================================================
+        //  VỊ TRÍ CỦA TÔI
+        // =====================================================================
+        private async void btnLocate_Click(object sender, EventArgs e)
+        {
+            if (busy) return;
+            btnLocate.Enabled = false;
+            lblInfo.Text = "Đang xác định vị trí của bạn...";
+            MyLocation loc = await LocationService.GetAsync();
+            btnLocate.Enabled = !busy;
+
+            if (loc == null)
+            {
+                lblInfo.Text = "Không xác định được vị trí. Hãy bật dịch vụ định vị của Windows (Settings > Privacy > Location) hoặc kiểm tra kết nối Internet.";
+                return;
+            }
+            mapCanvas.HasMyLocation = true;
+            mapCanvas.MyLat = loc.Lat;
+            mapCanvas.MyLng = loc.Lng;
+            mapCanvas.MyLocationApprox = loc.Approximate;
+            string src = "theo " + loc.Source + (loc.Approximate ? ", chỉ gần đúng" : "");
+
+            int st = graph != null ? graph.NearestStop(loc.Lat, loc.Lng) : -1;
+            double d = st >= 0 ? Meters(loc.Lat, loc.Lng, graph.Stops[st].Lat, graph.Stops[st].Lng) : double.MaxValue;
+            if (st < 0 || d > 3000)
+            {
+                mapCanvas.Invalidate();
+                lblInfo.Text = "Vị trí của bạn (" + src + ") nằm ngoài khu vực bản đồ đang mở" +
+                               (st >= 0 ? " (trạm gần nhất cách " + FormatDistance(d) + ")" : "") + ". Hãy chọn khu vực khác ở ô trên cùng.";
+                return;
+            }
+
+            ResetAnimation();
+            SetPoint(true, st, graph.Stops[st].Node);
+            pickingStart = false;
+            mapCanvas.Position = new PointLatLng(loc.Lat, loc.Lng);
+            mapCanvas.Invalidate();
+            lblInfo.Text = "Vị trí của bạn (" + src + "): trạm gần nhất là " + graph.Stops[st] + ", cách " + FormatDistance(d) + ". Đã đặt làm điểm đi (A).";
+            if (HasValidEndpoints()) RunSearch();
+        }
+
+        // =====================================================================
+        //  TÀI KHOẢN: HÀNH KHÁCH / TÀI XẾ
+        // =====================================================================
+        private void btnAccount_Click(object sender, EventArgs e)
+        {
+            if (account == null)
+            {
+                using (var dlg = new AuthForm(DataRoot))
+                {
+                    if (dlg.ShowDialog(this) != DialogResult.OK || dlg.Account == null) return;
+                    account = dlg.Account;
+                }
+                ApplyAccount();
+                lblInfo.Text = "Xin chào " + account.Name + " (" + account.RoleText + ")." +
+                               (account.Role == UserRole.Driver ? " Mở tab \"Tài xế\" để bắt đầu ca." : " Bấm \"☆ Lưu\" để lưu điểm đến vào yêu thích.");
+            }
+            else
+            {
+                if (onShift && MessageBox.Show("Bạn đang chạy ca. Đăng xuất sẽ kết thúc ca. Tiếp tục?", "Đăng xuất",
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+                account = null;
+                ApplyAccount();
+                lblInfo.Text = "Đã đăng xuất.";
+            }
+        }
+
+        // Hiện / ẩn các chức năng theo vai trò
+        private void ApplyAccount()
+        {
+            bool driver = account != null && account.Role == UserRole.Driver;
+            bool passenger = account != null && account.Role == UserRole.Passenger;
+
+            btnAccount.Text = account == null ? "Đăng nhập" : "Đăng xuất";
+            btnAccount.BackColor = account == null ? Green : Slate;
+            lblAccount.Text = account == null ? "Chưa đăng nhập (dùng với tư cách khách)"
+                                              : "Xin chào, " + account.Name + "  ·  " + account.RoleText;
+
+            btnTabDriver.Visible = driver;
+            cboFav.Visible = btnFavAdd.Visible = passenger;
+            if (!driver)
+            {
+                if (onShift) StopShift("Đã kết thúc ca.");
+                if (mode == Mode.Driver) SetMode(Mode.Bus);
+            }
+
+            favorites = passenger ? UserStore.LoadFavorites(DataRoot, account.Name) : new List<FavPlace>();
+            RefreshFavCombo();
+        }
+
+        // ----- Yêu thích (hành khách) -----
+        private void RefreshFavCombo()
+        {
+            cboFav.Items.Clear();
+            cboFav.Items.Add("★ Yêu thích...");
+            foreach (FavPlace f in favorites) cboFav.Items.Add(f);
+            cboFav.SelectedIndex = 0;
+        }
+
+        private void btnFavAdd_Click(object sender, EventArgs e)
+        {
+            if (account == null || graph == null) return;
+            int st = mapCanvas.EndStop >= 0 ? mapCanvas.EndStop : mapCanvas.StartStop;
+            if (st < 0 || st >= graph.Stops.Count) { lblInfo.Text = "Hãy chọn một trạm (điểm đến B) trước khi lưu."; return; }
+            BusStop bs = graph.Stops[st];
+
+            FavPlace existing = null;
+            foreach (FavPlace f in favorites)
+                if (Meters(f.Lat, f.Lng, bs.Lat, bs.Lng) < 30) { existing = f; break; }
+
+            if (existing != null)
+            {
+                if (MessageBox.Show("Bỏ \"" + existing.Name + "\" khỏi danh sách yêu thích?", "Yêu thích",
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+                favorites.Remove(existing);
+                lblInfo.Text = "Đã bỏ \"" + existing.Name + "\" khỏi yêu thích.";
+            }
+            else
+            {
+                favorites.Add(new FavPlace { Name = bs.ToString(), Lat = bs.Lat, Lng = bs.Lng });
+                lblInfo.Text = "Đã lưu \"" + bs + "\" vào yêu thích.";
+            }
+            UserStore.SaveFavorites(DataRoot, account.Name, favorites);
+            RefreshFavCombo();
+        }
+
+        private void cboFav_SelectionChangeCommitted(object sender, EventArgs e)
+        {
+            int idx = cboFav.SelectedIndex;
+            if (idx <= 0 || idx > favorites.Count || graph == null || busy) return;
+            FavPlace f = favorites[idx - 1];
+            int st = graph.NearestStop(f.Lat, f.Lng);
+            if (st < 0 || Meters(f.Lat, f.Lng, graph.Stops[st].Lat, graph.Stops[st].Lng) > 80)
+                lblInfo.Text = "\"" + f.Name + "\" nằm ngoài khu vực bản đồ đang mở.";
+            else
+                PickPoint(st, graph.Stops[st].Node);
+            cboFav.SelectedIndex = 0;
+        }
+
+        // ----- Ca làm việc của tài xế -----
+        private void btnTabDriver_Click(object sender, EventArgs e) { SetMode(Mode.Driver); }
+
+        private void FillDriverLines()
+        {
+            if (onShift) StopShift("Dữ liệu tuyến đã đổi nên ca được kết thúc.");
+            cboDriverLine.Items.Clear();
+            foreach (BusLine l in lines)
+                cboDriverLine.Items.Add("Tuyến " + l.Ref + "  ·  " + (graph != null ? l.Title(graph) : l.Name));
+            if (cboDriverLine.Items.Count > 0) cboDriverLine.SelectedIndex = 0;
+            lstDriverStops.Items.Clear();
+        }
+
+        private void btnShift_Click(object sender, EventArgs e)
+        {
+            if (onShift) { StopShift("Đã kết thúc ca."); return; }
+            int idx = cboDriverLine.SelectedIndex;
+            if (graph == null || idx < 0 || idx >= lines.Count) { lblDriverInfo.Text = "Chưa có tuyến nào để chạy."; return; }
+            BusLine l = lines[idx];
+            if (l.Stops.Count < 2 || l.Length < 50) { lblDriverInfo.Text = "Tuyến này chưa đủ dữ liệu để chạy."; return; }
+
+            driverLine = l;
+            driverMeters = 0;
+            driverNext = 1;
+            driverDwell = DriverDwellSeconds;
+            onShift = true;
+            driverListNext = -2;
+            btnShift.Text = "■ Kết thúc ca";
+            btnShift.BackColor = Color.FromArgb(220, 38, 38);
+            cboDriverLine.Enabled = false;
+
+            lstDriverStops.Items.Clear();
+            for (int i = 0; i < l.Stops.Count; i++) lstDriverStops.Items.Add("");
+            mapCanvas.HasDriver = true;
+            mapCanvas.DriverText = "Tuyến " + l.Ref;
+            LatLng p0 = l.Path.PointAt(0);
+            mapCanvas.DriverLat = p0.Lat;
+            mapCanvas.DriverLng = p0.Lng;
+            FitToPoints(l.Path.Points);
+            ApplyView();
+            UpdateDriverUi();
+            driverTimer.Start();
+        }
+
+        private void StopShift(string message)
+        {
+            onShift = false;
+            driverTimer.Stop();
+            driverLine = null;
+            mapCanvas.HasDriver = false;
+            btnShift.Text = "▶ Bắt đầu ca";
+            btnShift.BackColor = Green;
+            cboDriverLine.Enabled = true;
+            lblDriverInfo.Text = message;
+            lstDriverStops.Items.Clear();
+            ApplyView();
+        }
+
+        private void DriverTimer_Tick(object sender, EventArgs e)
+        {
+            if (!onShift || driverLine == null) return;
+            if (driverDwell > 0)
+            {
+                driverDwell -= driverTimer.Interval / 1000.0;
+                if (driverDwell < 0) driverDwell = 0;
+                UpdateDriverUi();
+                return;
+            }
+
+            driverMeters += DriverSpeed * driverTimer.Interval / 1000.0;
+            if (driverNext < driverLine.Stops.Count && driverMeters >= driverLine.StopDist[driverNext])
+            {
+                driverMeters = driverLine.StopDist[driverNext];
+                driverNext++;
+                if (driverNext >= driverLine.Stops.Count)
+                {
+                    string last = graph.Stops[driverLine.Stops[driverLine.Stops.Count - 1]].ToString();
+                    StopShift("Đã đến bến cuối: " + last + ". Chuyến kết thúc.");
+                    return;
+                }
+                driverDwell = DriverDwellSeconds;
+            }
+
+            LatLng p = driverLine.Path.PointAt(driverMeters);
+            mapCanvas.DriverLat = p.Lat;
+            mapCanvas.DriverLng = p.Lng;
+            UpdateDriverUi();
+            mapCanvas.Invalidate();
+        }
+
+        // Cập nhật dòng trạng thái và danh sách trạm của ca (✓ đã qua, ▶ trạm sắp tới)
+        private void UpdateDriverUi()
+        {
+            if (driverLine == null || graph == null) return;
+            int n = driverLine.Stops.Count;
+            int next = Math.Min(driverNext, n - 1);
+            string nextName = graph.Stops[driverLine.Stops[next]].ToString();
+            double toNext = Math.Max(0, driverLine.StopDist[next] - driverMeters);
+
+            string head = driverDwell > 0
+                ? "Đang dừng tại: " + graph.Stops[driverLine.Stops[Math.Max(0, driverNext - 1)]] + "  (còn " + Math.Ceiling(driverDwell) + " giây)"
+                : "Đang chạy tới: " + nextName + "  (còn " + FormatDistance(toNext) + ")";
+            lblDriverInfo.Text = head + "\r\nĐã chạy " + FormatDistance(driverMeters) + " / " + FormatDistance(driverLine.Length) +
+                                 "  ·  trạm " + Math.Min(driverNext, n) + "/" + n;
+
+            if (driverListNext != driverNext)
+            {
+                driverListNext = driverNext;
+                for (int i = 0; i < n && i < lstDriverStops.Items.Count; i++)
+                {
+                    string mark = i < driverNext ? "✓   " : (i == driverNext ? "▶   " : "      ");
+                    lstDriverStops.Items[i] = mark + graph.Stops[driverLine.Stops[i]];
+                }
+                if (driverNext < lstDriverStops.Items.Count) lstDriverStops.TopIndex = Math.Max(0, driverNext - 3);
+            }
+        }
+
+        // =====================================================================
         //  DANH SÁCH CÁC TUYẾN
         // =====================================================================
         private void lstLines_DrawItem(object sender, DrawItemEventArgs e)
@@ -1350,7 +1724,7 @@ namespace TestMap
             if (next >= 0)
             {
                 double left = mapCanvas.RouteStopDist[next] - busMeters;
-                lblInfo.Text = "Xe đang chạy  ·  trạm tiếp theo: " + graph.Stops[mapCanvas.RouteStops[next]].Name +
+                lblInfo.Text = "Xe đang chạy  ·  trạm tiếp theo: " + graph.Stops[mapCanvas.RouteStops[next]].ToString() +
                                " (còn " + FormatDistance(left) + ")";
             }
 
@@ -1419,10 +1793,10 @@ namespace TestMap
                 return;
             }
             var sb = new StringBuilder();
-            sb.AppendLine("Lộ trình: " + graph.Stops[listStopIndex[0]].Name + " → " + graph.Stops[listStopIndex[listStopIndex.Count - 1]].Name);
+            sb.AppendLine("Lộ trình: " + graph.Stops[listStopIndex[0]].ToString() + " → " + graph.Stops[listStopIndex[listStopIndex.Count - 1]].ToString());
             sb.AppendLine("Quãng đường " + lblDist.Text + ", khoảng " + lblTime.Text + ", đi qua " + listStopIndex.Count + " trạm.");
             for (int i = 0; i < listStopIndex.Count; i++)
-                sb.AppendLine((i + 1) + ". " + graph.Stops[listStopIndex[i]].Name + " (" + listSub[i] + ")");
+                sb.AppendLine((i + 1) + ". " + graph.Stops[listStopIndex[i]].ToString() + " (" + listSub[i] + ")");
             try
             {
                 Clipboard.SetText(sb.ToString());

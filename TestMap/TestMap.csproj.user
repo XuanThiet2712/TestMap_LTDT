@@ -8,6 +8,9 @@
     <Compile Update="Forms\AdminForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="Forms\AuthForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="Forms\LineEditorForm.cs">
       <SubType>Form</SubType>
     </Compile>
