@@ -39,7 +39,8 @@ namespace TestMap.Forms
         void ClearBlocked();
 
         // Đồ thị: đỉnh, trọng số, tên địa điểm
-        bool ShowWeights { get; set; }                 // hiện số đỉnh và trọng số trên bản đồ
+        bool ShowNodes { get; set; }                   // hiện ĐỈNH (số giao lộ) trên bản đồ
+        bool ShowWeights { get; set; }                 // hiện TRỌNG SỐ (chiều dài đoạn đường) trên bản đồ
         bool ShowNames { get; set; }                   // hiện tên địa điểm / trạm sớm hơn
         string LookupGraph(string nodeA, string nodeB); // tra trọng số giữa hai đỉnh (nodeB rỗng: xem các đỉnh nối với nodeA)
         void OpenModel();                              // mở sơ đồ mô hình cách đi xe buýt

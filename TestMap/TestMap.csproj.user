@@ -26,6 +26,9 @@
     <Compile Update="Forms\ModelForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="Forms\PercentBar.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Update="Forms\PoiForm.cs">
       <SubType>Form</SubType>
     </Compile>

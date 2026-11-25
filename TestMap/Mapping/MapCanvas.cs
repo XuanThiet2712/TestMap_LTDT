@@ -69,7 +69,8 @@ namespace TestMap.Mapping
         private Poi hoverPoi;
 
         // ----- Đồ thị: đỉnh và trọng số; tên địa điểm cụ thể -----
-        public bool ShowWeights;                                  // vẽ số đỉnh và trọng số (chiều dài, mét) của từng đoạn đường
+        public bool ShowNodes;                                    // vẽ ĐỈNH: số của từng giao lộ (và tên trạm nếu có)
+        public bool ShowWeights;                                  // vẽ TRỌNG SỐ: chiều dài (mét) của từng đoạn đường
         public bool ShowAllNames = true;                          // hiện tên trạm / địa điểm sớm hơn (ở mức zoom thấp hơn)
 
         // Bấm chuột trái (không kéo) lên một địa điểm (khi không trúng trạm)
@@ -227,12 +228,12 @@ namespace TestMap.Mapping
             bool hasStart = StartNode >= 0, hasEnd = EndNode >= 0;
             PointF startP = hasStart ? PointOf(StartStop, StartNode) : new PointF();
             PointF endP = hasEnd ? PointOf(EndStop, EndNode) : new PointF();
-            if (hasStart) DrawPin(g, startP, "A", StartColor);
-            if (hasEnd) DrawPin(g, endP, "B", EndColor);
+            if (hasStart) { DrawPin(g, startP, "A", StartColor); used.Add(new RectangleF(startP.X - 15, startP.Y - 44, 30, 44)); }
+            if (hasEnd) { DrawPin(g, endP, "B", EndColor); used.Add(new RectangleF(endP.X - 15, endP.Y - 44, 30, 44)); }
 
             // Nhãn: điểm đi/đến trước, rồi trạm trên tuyến, cuối cùng các trạm còn lại
-            if (hasStart) DrawLabel(g, StopName(StartStop, "Điểm đi"), startP, PinFont, StartColor, 15f, used);
-            if (hasEnd) DrawLabel(g, StopName(EndStop, "Điểm đến"), endP, PinFont, EndColor, 15f, used);
+            if (hasStart) DrawLabel(g, "Đi: " + StopName(StartStop, "Điểm đi"), startP, PinFont, StartColor, 17f, used);
+            if (hasEnd) DrawLabel(g, "Đến: " + StopName(EndStop, "Điểm đến"), endP, PinFont, EndColor, 17f, used);
             if (Zoom >= 16)
                 foreach (var kv in routeLabels) DrawLabel(g, kv.Key, kv.Value, RouteFont, InkColor, rr + 4f, used);
             foreach (var kv in normalLabels) DrawLabel(g, kv.Key, kv.Value, StopFont, StopColor, r + 4f, used);
@@ -485,16 +486,38 @@ namespace TestMap.Mapping
                 }
         }
 
-        // Ghim tròn có chữ A / B
+        // Ghim giọt nước chỉ đúng vào vị trí trạm (mũi nhọn ở dưới), đầu ghim có chữ A (đi) / B (đến)
         private void DrawPin(Graphics g, PointF c, string letter, Color color)
         {
-            using (var shadow = new SolidBrush(Color.FromArgb(50, 0, 0, 0)))
-                g.FillEllipse(shadow, c.X - 12, c.Y - 9, 24, 24);
-            using (var fill = new SolidBrush(color))
-                g.FillEllipse(fill, c.X - 11, c.Y - 11, 22, 22);
-            using (var border = new Pen(Color.White, 2.4f))
-                g.DrawEllipse(border, c.X - 11, c.Y - 11, 22, 22);
-            g.DrawString(letter, PinFont, Brushes.White, new RectangleF(c.X - 11, c.Y - 11, 22, 22), CenterFmt);
+            const float R = 14f;                       // bán kính đầu ghim
+            float cy = c.Y - 24f;                      // tâm đầu ghim nằm phía trên điểm chỉ
+
+            // vòng sáng + bóng dưới đất để thấy rõ chỗ ghim chạm
+            using (var halo = new SolidBrush(Color.FromArgb(55, color)))
+                g.FillEllipse(halo, c.X - 15, c.Y - 7, 30, 14);
+            using (var shadow = new SolidBrush(Color.FromArgb(70, 0, 0, 0)))
+                g.FillEllipse(shadow, c.X - 6, c.Y - 2.5f, 12, 5);
+
+            // thân ghim: hình tròn + mũi nhọn
+            using (var path = new GraphicsPath())
+            {
+                float k = (float)(Math.PI / 5.5);      // mũi nhọn hơi bo
+                path.AddArc(c.X - R, cy - R, 2 * R, 2 * R, 90 + (float)(k * 180 / Math.PI), 360 - 2 * (float)(k * 180 / Math.PI));
+                path.AddLine(c.X + R * (float)Math.Sin(k), cy + R * (float)Math.Cos(k), c.X, c.Y);
+                path.AddLine(c.X, c.Y, c.X - R * (float)Math.Sin(k), cy + R * (float)Math.Cos(k));
+                path.CloseFigure();
+
+                using (var body = new LinearGradientBrush(new RectangleF(c.X - R, cy - R, 2 * R, c.Y - cy + R),
+                           ControlPaint.Light(color, 0.35f), ControlPaint.Dark(color, 0.1f), LinearGradientMode.Vertical))
+                    g.FillPath(body, path);
+                using (var rim = new Pen(Color.White, 2.2f)) { rim.LineJoin = LineJoin.Round; g.DrawPath(rim, path); }
+            }
+
+            // vòng trắng ở giữa, chữ cái màu của ghim
+            using (var inner = new SolidBrush(Color.White))
+                g.FillEllipse(inner, c.X - 9, cy - 9, 18, 18);
+            using (var ink = new SolidBrush(ControlPaint.Dark(color, 0.05f)))
+                g.DrawString(letter, PinFont, ink, new RectangleF(c.X - 10, cy - 10, 20, 20), CenterFmt);
         }
 
         // Xe buýt chạy thử
@@ -616,10 +639,10 @@ namespace TestMap.Mapping
             }
 
             hoverPoint = e.Location;
-            if (BlockMode || ShowWeights)
+            if (BlockMode || ShowWeights || ShowNodes)
             {
                 int he = best >= 0 ? -1 : EdgeAt(e.X, e.Y, 9);
-                if (he != hoverEdge || (ShowWeights && he >= 0))
+                if (he != hoverEdge || ((ShowWeights || ShowNodes) && he >= 0))
                 {
                     hoverEdge = he;
                     if (best < 0 && BlockMode) Cursor = he >= 0 ? Cursors.Cross : Cursors.Default;
@@ -864,7 +887,7 @@ namespace TestMap.Mapping
             if (RoadNet == null || RoadNet.Blocked == null) return;
             Color red = Color.FromArgb(220, 38, 38);
 
-            if ((BlockMode || ShowWeights) && hoverEdge >= 0 && hoverEdge < RoadNet.Edges.Count)
+            if ((BlockMode || ShowWeights || ShowNodes) && hoverEdge >= 0 && hoverEdge < RoadNet.Edges.Count)
                 using (Pen hp = RoundPen(Color.FromArgb(150, 234, 88, 12), 7f * scale + 3f))
                     g.DrawLines(hp, EdgePoints(hoverEdge).ToArray());
 
@@ -905,7 +928,7 @@ namespace TestMap.Mapping
 
         private void DrawWeights(Graphics g, RectLatLng view)
         {
-            if (!ShowWeights || RoadNet == null) return;
+            if ((!ShowWeights && !ShowNodes) || RoadNet == null) return;
 
             var visible = new List<int>();
             for (int ei = 0; ei < RoadNet.Edges.Count; ei++)
@@ -913,7 +936,8 @@ namespace TestMap.Mapping
 
             if (Zoom < 15 || visible.Count > 450)
             {
-                string hint = "Phóng to thêm để thấy đỉnh và trọng số (đang có " + visible.Count + " đoạn đường trên màn hình)";
+                string what = ShowNodes && ShowWeights ? "đỉnh và trọng số" : (ShowNodes ? "đỉnh" : "trọng số");
+                string hint = "Phóng to thêm để thấy " + what + " (đang có " + visible.Count + " đoạn đường trên màn hình)";
                 SizeF hs = g.MeasureString(hint, SmallFont, 10000, Fmt);
                 var hr = new RectangleF((Width - hs.Width) / 2 - 8, 14, hs.Width + 16, hs.Height + 8);
                 using (GraphicsPath hp = RoundRect(hr, 6f))
@@ -943,6 +967,7 @@ namespace TestMap.Mapping
                 // Trọng số trước (chip nhỏ ở giữa đoạn đường), đỉnh vẽ đè lên
                 foreach (int ei in visible)
                 {
+                    if (!ShowWeights) break;
                     RoadEdge e = RoadNet.Edges[ei];
                     List<PointF> pts = EdgePoints(ei);
                     PointF mid = MidOfPolyline(pts);
@@ -961,6 +986,7 @@ namespace TestMap.Mapping
 
                 foreach (int n in nodeSeen)
                 {
+                    if (!ShowNodes) break;
                     LatLng p = RoadNet.Nodes[n];
                     PointF c = ToScreen(p.Lat, p.Lng);
                     string id = n.ToString();
@@ -973,6 +999,7 @@ namespace TestMap.Mapping
                 }
                 foreach (int n in nodeSeen)
                 {
+                    if (!ShowNodes) break;
                     string name;
                     if (!stopAtNode.TryGetValue(n, out name)) continue;
                     LatLng p = RoadNet.Nodes[n];

@@ -344,7 +344,7 @@ namespace TestMap
                 BeginInvoke(new Action(() =>
                 {
                     lblInfo.Text = msg;
-                    if (pbLoad.Style == ProgressBarStyle.Marquee) lblProgress.Text = msg;     // đang tải mạng: hiện "Đã nhận x MB"
+                    if (pbLoad.Marquee) { lblProgress.Text = msg; }     // đang tải mạng: hiện "Đã nhận x MB"
                 }));
         }
 
@@ -355,14 +355,15 @@ namespace TestMap
             progressTimer.Stop();
             if (percent < 0)
             {
-                if (pbLoad.Style != ProgressBarStyle.Marquee) { pbLoad.Style = ProgressBarStyle.Marquee; pbLoad.MarqueeAnimationSpeed = 30; }
+                pbLoad.Marquee = true;                 // chưa biết tổng: thanh chạy qua lại
+                pbLoad.Caption = "Đang tải...";
                 lblProgress.Text = text;
             }
             else
             {
-                if (pbLoad.Style != ProgressBarStyle.Continuous) pbLoad.Style = ProgressBarStyle.Continuous;
-                pbLoad.Value = Math.Max(0, Math.Min(100, percent));
-                lblProgress.Text = percent + "%  ·  " + text;
+                pbLoad.Marquee = false;
+                pbLoad.Value = Math.Max(0, Math.Min(100, percent));     // phần trăm hiện ngay giữa thanh
+                lblProgress.Text = text;
             }
             pnlProgress.Update();
         }
@@ -383,7 +384,7 @@ namespace TestMap
         private void ResetProgress()
         {
             progressTimer.Stop();
-            pbLoad.Style = ProgressBarStyle.Continuous;
+            pbLoad.Marquee = false;
             pbLoad.Value = 0;
             lblProgress.Text = "Sẵn sàng";
         }
@@ -515,7 +516,8 @@ namespace TestMap
         private void ApplyGraph(RoadGraph g, Area a, List<BusLine> ls, bool demo)
         {
             graph = g;
-            chkWeights.Checked = a.Offline;          // khu vực demo nhỏ: bật sẵn đỉnh và trọng số cho dễ xem
+            chkNodes.Checked = a.Offline;            // khu vực demo nhỏ: bật sẵn đỉnh và trọng số cho dễ xem
+            chkWeights.Checked = a.Offline;
             g.AssignLabels(a.Key == "hcm_q1_3_5_10" ? (Func<double, double, string>)ZoneOf : null);
             LoadPois(a);
             mapCanvas.RoadNet = g;

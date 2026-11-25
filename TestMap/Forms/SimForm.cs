@@ -24,6 +24,7 @@ namespace TestMap.Forms
             SetEnabled(0, false);
             SetEnabled(1, false);
             RefreshBlocked();
+            chkShowNodes.Checked = host.ShowNodes;
             chkShowWeights.Checked = host.ShowWeights;
             chkShowNames.Checked = host.ShowNames;
         }
@@ -181,6 +182,7 @@ namespace TestMap.Forms
         }
 
         // ----- tab Đồ thị -----
+        private void chkShowNodes_CheckedChanged(object sender, EventArgs e) { host.ShowNodes = chkShowNodes.Checked; }
         private void chkShowWeights_CheckedChanged(object sender, EventArgs e) { host.ShowWeights = chkShowWeights.Checked; }
         private void chkShowNames_CheckedChanged(object sender, EventArgs e) { host.ShowNames = chkShowNames.Checked; }
         private void btnLookup_Click(object sender, EventArgs e) { lblLookup.Text = host.LookupGraph(txtNode1.Text, txtNode2.Text); }

@@ -358,6 +358,12 @@ namespace TestMap
         // =====================================================================
         //  ĐỒ THỊ: ĐỈNH, TRỌNG SỐ, TÊN ĐỊA ĐIỂM
         // =====================================================================
+        public bool ShowNodes
+        {
+            get { return chkNodes.Checked; }
+            set { chkNodes.Checked = value; }
+        }
+
         public bool ShowWeights
         {
             get { return chkWeights.Checked; }
@@ -370,10 +376,23 @@ namespace TestMap
             set { chkNames.Checked = value; }
         }
 
+        private void chkNodes_CheckedChanged(object sender, EventArgs e)
+        {
+            mapCanvas.ShowNodes = chkNodes.Checked;
+            GraphOverlayChanged();
+        }
+
         private void chkWeights_CheckedChanged(object sender, EventArgs e)
         {
             mapCanvas.ShowWeights = chkWeights.Checked;
-            if (chkWeights.Checked && graph != null && mapCanvas.Zoom < 15 && graph.Nodes.Count <= 200) mapCanvas.Zoom = 16;
+            GraphOverlayChanged();
+        }
+
+        // Đồ thị nhỏ (khu vực demo) thì tự phóng to vừa đủ để nhìn thấy số
+        private void GraphOverlayChanged()
+        {
+            bool on = chkNodes.Checked || chkWeights.Checked;
+            if (on && graph != null && mapCanvas.Zoom < 15 && graph.Nodes.Count <= 200) mapCanvas.Zoom = 16;
             mapCanvas.Invalidate();
         }
 
@@ -396,7 +415,7 @@ namespace TestMap
             if (graph == null) return "Bản đồ chưa sẵn sàng.";
             int a, b;
             if (!int.TryParse((textA ?? "").Trim(), out a) || a < 0 || a >= graph.Nodes.Count)
-                return "Đỉnh 1 không hợp lệ. Hãy gõ số từ 0 tới " + (graph.Nodes.Count - 1) + " (số hiện trong vòng tròn trên bản đồ khi bật \"Hiện đỉnh và trọng số\").";
+                return "Đỉnh 1 không hợp lệ. Hãy gõ số từ 0 tới " + (graph.Nodes.Count - 1) + " (số hiện trong vòng tròn trên bản đồ khi bật \"Hiện đỉnh\").";
 
             var sb = new StringBuilder();
             string place = StopsAtNode(a);
