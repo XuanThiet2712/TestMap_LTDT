@@ -63,7 +63,7 @@ namespace TestMap
             if (tableModels[kind].Error != null && tableModels[1 - kind].Error == null) kind = 1 - kind;
 
             if (tableForm != null && !tableForm.IsDisposed) tableForm.Close();
-            tableForm = new TableForm(tableModels, kind, OnTableStep);
+            tableForm = new TableForm(tableModels, kind, cboAlgo.SelectedIndex, OnTableStep);
             tableForm.Show(this);
         }
 
@@ -82,8 +82,12 @@ namespace TestMap
             foreach (BusStop s in graph.Stops) if (!nameAt.ContainsKey(s.Node)) nameAt[s.Node] = s.ToString();
 
             m.MapIndex = new int[n];
+            m.Lat = new double[n];
+            m.Lng = new double[n];
             for (int i = 0; i < n; i++)
             {
+                m.Lat[i] = graph.Nodes[i].Lat;
+                m.Lng[i] = graph.Nodes[i].Lng;
                 string nm;
                 m.Labels.Add(i + (nameAt.TryGetValue(i, out nm) ? "   " + nm : ""));
                 m.MapIndex[i] = i;
@@ -95,6 +99,15 @@ namespace TestMap
                 }
                 m.Adj.Add(adj);
             }
+            // h = đường chim bay (mét) nhân hệ số c <= 1 để chắc chắn không ước lượng quá tay (A* cần h không lớn hơn chi phí thật)
+            double c = 1.0;
+            foreach (RoadEdge ed in graph.Edges)
+            {
+                double geo = Meters(graph.Nodes[ed.From].Lat, graph.Nodes[ed.From].Lng, graph.Nodes[ed.To].Lat, graph.Nodes[ed.To].Lng);
+                if (geo > 1e-6 && ed.Length > 0) c = Math.Min(c, ed.Length / geo);
+            }
+            double[] la = m.Lat, ln = m.Lng;
+            m.H = (a, b) => Meters(la[a], ln[a], la[b], ln[b]) * c;
             m.DefaultSrc = mapCanvas.StartNode >= 0 && mapCanvas.StartNode < n ? mapCanvas.StartNode : 0;
             m.DefaultDst = mapCanvas.EndNode >= 0 && mapCanvas.EndNode < n ? mapCanvas.EndNode : n - 1;
             return m;
@@ -123,6 +136,11 @@ namespace TestMap
                 m.Adj.Add(new List<Link>());
             }
             m.MapIndex = stopOf.ToArray();
+            m.Lat = new double[stopOf.Count];
+            m.Lng = new double[stopOf.Count];
+            for (int i = 0; i < stopOf.Count; i++) { m.Lat[i] = graph.Stops[stopOf[i]].Lat; m.Lng[i] = graph.Stops[stopOf[i]].Lng; }
+            double[] sla = m.Lat, sln = m.Lng;
+            m.H = (a, b) => Meters(sla[a], sln[a], sla[b], sln[b]) / TransitNet.BusSpeed;     // chim bay chia tốc độ xe: không bao giờ lớn hơn thời gian thật
 
             // trọng số: quãng đường / tốc độ xe + thời gian dừng (giữ giá trị nhỏ nhất nếu nhiều tuyến cùng chạy giữa hai trạm)
             var best = new Dictionary<long, double>();
@@ -145,7 +163,7 @@ namespace TestMap
         }
 
         // Bảng chạy tới bước nào thì bản đồ sáng các đỉnh đã chốt tới đó
-        private void OnTableStep(int kind, HashSet<int> finalized, int current)
+        private void OnTableStep(int kind, HashSet<int> finalized, int current, int goal, string hText)
         {
             if (finalized == null)               // đóng bảng: xóa lớp vẽ
             {
@@ -162,6 +180,15 @@ namespace TestMap
             ClearSimOverlay();
             if (kind == 0) { mapCanvas.SimOpenNodes = set; mapCanvas.SimCurrentNode = cur; }
             else { mapCanvas.SimStops = set; mapCanvas.SimCurrentStop = cur; }
+
+            // A*: vẽ đường chim bay từ đỉnh đang xét tới đích kèm giá trị h
+            mapCanvas.SimHasHLine = goal >= 0 && current >= 0 && goal < m.Lat.Length && current < m.Lat.Length;
+            if (mapCanvas.SimHasHLine)
+            {
+                mapCanvas.SimHFrom = new LatLng(m.Lat[current], m.Lng[current]);
+                mapCanvas.SimHTo = new LatLng(m.Lat[goal], m.Lng[goal]);
+                mapCanvas.SimHText = hText;
+            }
             ApplyView();
             mapCanvas.Invalidate();
         }

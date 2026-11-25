@@ -73,6 +73,10 @@ namespace TestMap
             this.pnlItinFilter = new System.Windows.Forms.Panel();
             this.lblSort = new System.Windows.Forms.Label();
             this.cboItinSort = new System.Windows.Forms.ComboBox();
+            this.btnKindFast = new System.Windows.Forms.Button();
+            this.btnKindFew = new System.Windows.Forms.Button();
+            this.btnKindCheap = new System.Windows.Forms.Button();
+            this.btnKindWalk = new System.Windows.Forms.Button();
             this.lblItinCount = new System.Windows.Forms.Label();
             this.lblWalkLimit = new System.Windows.Forms.Label();
             this.cboWalkLimit = new System.Windows.Forms.ComboBox();
@@ -598,7 +602,7 @@ namespace TestMap
             this.lstItins.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.lstItins.FormattingEnabled = true;
             this.lstItins.IntegralHeight = false;
-            this.lstItins.ItemHeight = 168;
+            this.lstItins.ItemHeight = 204;
             this.lstItins.Location = new System.Drawing.Point(0, 50);
             this.lstItins.Name = "lstItins";
             this.lstItins.Size = new System.Drawing.Size(400, 210);
@@ -677,6 +681,10 @@ namespace TestMap
             this.pnlItinFilter.BackColor = System.Drawing.Color.FromArgb(226, 232, 240);
             this.pnlItinFilter.Controls.Add(this.lblSort);
             this.pnlItinFilter.Controls.Add(this.cboItinSort);
+            this.pnlItinFilter.Controls.Add(this.btnKindFast);
+            this.pnlItinFilter.Controls.Add(this.btnKindFew);
+            this.pnlItinFilter.Controls.Add(this.btnKindCheap);
+            this.pnlItinFilter.Controls.Add(this.btnKindWalk);
             this.pnlItinFilter.Controls.Add(this.lblItinCount);
             this.pnlItinFilter.Controls.Add(this.lblWalkLimit);
             this.pnlItinFilter.Controls.Add(this.cboWalkLimit);
@@ -693,11 +701,11 @@ namespace TestMap
             this.lblSort.AutoSize = false;
             this.lblSort.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
             this.lblSort.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
-            this.lblSort.Location = new System.Drawing.Point(16, 9);
+            this.lblSort.Location = new System.Drawing.Point(14, 11);
             this.lblSort.Name = "lblSort";
-            this.lblSort.Size = new System.Drawing.Size(70, 20);
+            this.lblSort.Size = new System.Drawing.Size(54, 20);
             this.lblSort.TabIndex = 0;
-            this.lblSort.Text = "Sắp xếp";
+            this.lblSort.Text = "Kiểu đi";
             // 
             // cboItinSort
             // 
@@ -712,16 +720,85 @@ namespace TestMap
             this.cboItinSort.Name = "cboItinSort";
             this.cboItinSort.SelectedIndex = 0;
             this.cboItinSort.Size = new System.Drawing.Size(140, 23);
+            this.cboItinSort.Visible = false;
             this.cboItinSort.TabIndex = 1;
             this.cboItinSort.SelectedIndexChanged += new System.EventHandler(this.cboItinSort_SelectedIndexChanged);
+            // 
+            // btnKindFast
+            // 
+            this.btnKindFast.BackColor = System.Drawing.Color.White;
+            this.btnKindFast.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnKindFast.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(203, 213, 225);
+            this.btnKindFast.FlatAppearance.BorderSize = 1;
+            this.btnKindFast.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnKindFast.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
+            this.btnKindFast.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnKindFast.Location = new System.Drawing.Point(70, 6);
+            this.btnKindFast.Name = "btnKindFast";
+            this.btnKindFast.Size = new System.Drawing.Size(76, 26);
+            this.btnKindFast.TabIndex = 7;
+            this.btnKindFast.Text = "Nhanh nhất";
+            this.btnKindFast.UseVisualStyleBackColor = false;
+            this.btnKindFast.Click += new System.EventHandler(this.btnKindFast_Click);
+            // 
+            // btnKindFew
+            // 
+            this.btnKindFew.BackColor = System.Drawing.Color.White;
+            this.btnKindFew.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnKindFew.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(203, 213, 225);
+            this.btnKindFew.FlatAppearance.BorderSize = 1;
+            this.btnKindFew.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnKindFew.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
+            this.btnKindFew.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnKindFew.Location = new System.Drawing.Point(150, 6);
+            this.btnKindFew.Name = "btnKindFew";
+            this.btnKindFew.Size = new System.Drawing.Size(76, 26);
+            this.btnKindFew.TabIndex = 7;
+            this.btnKindFew.Text = "Ít đổi";
+            this.btnKindFew.UseVisualStyleBackColor = false;
+            this.btnKindFew.Click += new System.EventHandler(this.btnKindFew_Click);
+            // 
+            // btnKindCheap
+            // 
+            this.btnKindCheap.BackColor = System.Drawing.Color.White;
+            this.btnKindCheap.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnKindCheap.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(203, 213, 225);
+            this.btnKindCheap.FlatAppearance.BorderSize = 1;
+            this.btnKindCheap.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnKindCheap.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
+            this.btnKindCheap.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnKindCheap.Location = new System.Drawing.Point(230, 6);
+            this.btnKindCheap.Name = "btnKindCheap";
+            this.btnKindCheap.Size = new System.Drawing.Size(76, 26);
+            this.btnKindCheap.TabIndex = 7;
+            this.btnKindCheap.Text = "Rẻ nhất";
+            this.btnKindCheap.UseVisualStyleBackColor = false;
+            this.btnKindCheap.Click += new System.EventHandler(this.btnKindCheap_Click);
+            // 
+            // btnKindWalk
+            // 
+            this.btnKindWalk.BackColor = System.Drawing.Color.White;
+            this.btnKindWalk.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnKindWalk.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(203, 213, 225);
+            this.btnKindWalk.FlatAppearance.BorderSize = 1;
+            this.btnKindWalk.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnKindWalk.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
+            this.btnKindWalk.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnKindWalk.Location = new System.Drawing.Point(310, 6);
+            this.btnKindWalk.Name = "btnKindWalk";
+            this.btnKindWalk.Size = new System.Drawing.Size(76, 26);
+            this.btnKindWalk.TabIndex = 7;
+            this.btnKindWalk.Text = "Ít đi bộ";
+            this.btnKindWalk.UseVisualStyleBackColor = false;
+            this.btnKindWalk.Click += new System.EventHandler(this.btnKindWalk_Click);
             // 
             // lblItinCount
             // 
             this.lblItinCount.AutoSize = false;
             this.lblItinCount.ForeColor = System.Drawing.Color.FromArgb(100, 116, 139);
-            this.lblItinCount.Location = new System.Drawing.Point(240, 9);
+            this.lblItinCount.Location = new System.Drawing.Point(272, 39);
             this.lblItinCount.Name = "lblItinCount";
-            this.lblItinCount.Size = new System.Drawing.Size(144, 20);
+            this.lblItinCount.Size = new System.Drawing.Size(112, 20);
             this.lblItinCount.TabIndex = 2;
             this.lblItinCount.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
@@ -732,9 +809,9 @@ namespace TestMap
             this.lblWalkLimit.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
             this.lblWalkLimit.Location = new System.Drawing.Point(16, 39);
             this.lblWalkLimit.Name = "lblWalkLimit";
-            this.lblWalkLimit.Size = new System.Drawing.Size(70, 20);
+            this.lblWalkLimit.Size = new System.Drawing.Size(56, 20);
             this.lblWalkLimit.TabIndex = 3;
-            this.lblWalkLimit.Text = "Đi bộ tối đa";
+            this.lblWalkLimit.Text = "Đi bộ ≤";
             // 
             // cboWalkLimit
             // 
@@ -746,10 +823,10 @@ namespace TestMap
             "500 m",
             "800 m",
             "1200 m"});
-            this.cboWalkLimit.Location = new System.Drawing.Point(90, 36);
+            this.cboWalkLimit.Location = new System.Drawing.Point(74, 36);
             this.cboWalkLimit.Name = "cboWalkLimit";
             this.cboWalkLimit.SelectedIndex = 0;
-            this.cboWalkLimit.Size = new System.Drawing.Size(90, 23);
+            this.cboWalkLimit.Size = new System.Drawing.Size(80, 23);
             this.cboWalkLimit.TabIndex = 4;
             this.cboWalkLimit.SelectedIndexChanged += new System.EventHandler(this.cboWalkLimit_SelectedIndexChanged);
             // 
@@ -759,11 +836,11 @@ namespace TestMap
             this.chkWalkSuggest.Checked = true;
             this.chkWalkSuggest.CheckState = System.Windows.Forms.CheckState.Checked;
             this.chkWalkSuggest.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
-            this.chkWalkSuggest.Location = new System.Drawing.Point(196, 38);
+            this.chkWalkSuggest.Location = new System.Drawing.Point(162, 38);
             this.chkWalkSuggest.Name = "chkWalkSuggest";
             this.chkWalkSuggest.Size = new System.Drawing.Size(150, 19);
             this.chkWalkSuggest.TabIndex = 5;
-            this.chkWalkSuggest.Text = "Gợi ý đi bộ khi không có xe";
+            this.chkWalkSuggest.Text = "Cho phép đi bộ";
             this.chkWalkSuggest.CheckedChanged += new System.EventHandler(this.chkWalkSuggest_CheckedChanged);
             // 
             // btnModel
@@ -1570,6 +1647,10 @@ namespace TestMap
         private System.Windows.Forms.Panel pnlItinFilter;
         private System.Windows.Forms.Label lblSort;
         private System.Windows.Forms.ComboBox cboItinSort;
+        private System.Windows.Forms.Button btnKindFast;
+        private System.Windows.Forms.Button btnKindFew;
+        private System.Windows.Forms.Button btnKindCheap;
+        private System.Windows.Forms.Button btnKindWalk;
         private System.Windows.Forms.Label lblItinCount;
         private System.Windows.Forms.Label lblWalkLimit;
         private System.Windows.Forms.ComboBox cboWalkLimit;

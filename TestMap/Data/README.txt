@@ -8,3 +8,4 @@ driver_code.txt                  : ma dang ky tai xe (mac dinh TAIXE123, tu tao 
 demo_nho                         : khu vuc demo don gian cho thay (luoi 6x5, 16 tram, 4 tuyen, 3 cay cau, co dia diem). Du lieu tu tao, khong tai lai tu OSM.
 Thanh tien trinh o duoi cung: doc du lieu hien phan tram; tai tu OpenStreetMap hien so MB da nhan.
 demo_9                           : khu vuc demo 9 dinh giong bai giang Dijkstra (13 canh, 1 don vi trong so = 100 m), 4 tuyen xe buyt. Mo mac dinh khi chay.
+Bang Dijkstra / A*: nut "Bang Dijkstra" tren thanh tren (doi thuat toan o o "Thuat toan" trong cua so bang).

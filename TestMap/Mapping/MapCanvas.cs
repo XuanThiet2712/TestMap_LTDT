@@ -64,6 +64,9 @@ namespace TestMap.Mapping
         public int SimCurrentNode = -1;                           // giao lộ vừa được chốt
         public HashSet<int> SimStops;                             // mô phỏng gợi ý xe buýt: các trạm đã xét
         public int SimCurrentStop = -1;                           // trạm đang xét
+        public bool SimHasHLine;                                  // A*: vẽ đường chim bay h từ đỉnh đang xét tới đích
+        public LatLng SimHFrom, SimHTo;
+        public string SimHText = "";
         private int hoverEdge = -1;
         private Point hoverPoint;
         private Poi hoverPoi;
@@ -1077,6 +1080,27 @@ namespace TestMap.Mapping
                     PointF c = ToScreen(st.Lat, st.Lng);
                     using (var pen = new Pen(amber, 2.6f)) g.DrawEllipse(pen, c.X - 9, c.Y - 9, 18, 18);
                 }
+
+            if (SimHasHLine)
+            {
+                PointF a = ToScreen(SimHFrom.Lat, SimHFrom.Lng), b = ToScreen(SimHTo.Lat, SimHTo.Lng);
+                Color purple = Color.FromArgb(124, 58, 237);
+                using (var pen = new Pen(purple, 2.6f))
+                {
+                    pen.DashStyle = DashStyle.Dash;
+                    g.DrawLine(pen, a, b);
+                }
+                using (var ring = new Pen(purple, 3f)) g.DrawEllipse(ring, b.X - 13, b.Y - 13, 26, 26);   // đích
+                if (SimHText.Length > 0)
+                {
+                    SizeF ts = g.MeasureString(SimHText, PinFont, 10000, Fmt);
+                    var rc = new RectangleF((a.X + b.X) / 2 - ts.Width / 2 - 7, (a.Y + b.Y) / 2 - ts.Height / 2 - 3, ts.Width + 14, ts.Height + 6);
+                    using (GraphicsPath hp = RoundRect(rc, 6f))
+                    using (var hb = new SolidBrush(purple))
+                        g.FillPath(hb, hp);
+                    g.DrawString(SimHText, PinFont, Brushes.White, rc.X + 7, rc.Y + 3, Fmt);
+                }
+            }
 
             if (SimCurrentNode >= 0 && SimCurrentNode < RoadNet.Nodes.Count)
                 DrawSimFocus(g, RoadNet.Nodes[SimCurrentNode], view, blue);

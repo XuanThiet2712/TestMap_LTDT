@@ -41,7 +41,7 @@ namespace TestMap
 
         private static readonly Area[] Areas =
         {
-            new Area("demo_9", "★ Demo 9 đỉnh (giống bài giảng)", 10.7751, 106.6907, 10.7810, 106.6988) { Offline = true },
+            new Area("demo_9", "★ Demo 9 đỉnh (giống bài giảng)", 10.7753, 106.6904, 10.7816, 106.6979) { Offline = true },
             // Quận 1, 3, 5, 10 gộp thành MỘT bản đồ (hộp bao ngoài cùng của 4 quận).
             new Area("hcm_q1_3_5_10", "TP.HCM - Quận 1, 3, 5, 10 (gộp)", 10.7490, 106.6500, 10.7900, 106.7110),
             new Area("demo_nho", "★ Demo đơn giản (cho thầy)", 10.7690, 106.6890, 10.7790, 106.7020) { Offline = true },
@@ -1114,6 +1114,7 @@ namespace TestMap
                 list.Add(it);
             }
 
+            UpdateKindButtons();
             int sort = cboItinSort.SelectedIndex;
             list.Sort((x, y) =>
             {
@@ -1151,6 +1152,103 @@ namespace TestMap
         }
 
         private void cboItinSort_SelectedIndexChanged(object sender, EventArgs e) { ApplyItinFilter(); }
+
+        // Nút chọn nhanh "kiểu đi": nhanh nhất / ít đổi tuyến / rẻ nhất / ít đi bộ
+        private void SetKind(int k)
+        {
+            if (cboItinSort.SelectedIndex != k) cboItinSort.SelectedIndex = k;      // đổi chỉ số sẽ tự lọc lại
+            else ApplyItinFilter();
+        }
+
+        private void btnKindFast_Click(object sender, EventArgs e) { SetKind(0); }
+        private void btnKindFew_Click(object sender, EventArgs e) { SetKind(1); }
+        private void btnKindCheap_Click(object sender, EventArgs e) { SetKind(2); }
+        private void btnKindWalk_Click(object sender, EventArgs e) { SetKind(3); }
+
+        private void UpdateKindButtons()
+        {
+            Button[] bs = { btnKindFast, btnKindFew, btnKindCheap, btnKindWalk };
+            for (int i = 0; i < bs.Length; i++)
+            {
+                bool on = cboItinSort.SelectedIndex == i;
+                bs[i].BackColor = on ? MapCanvas.RouteColor : Color.White;
+                bs[i].ForeColor = on ? Color.White : Slate;
+                bs[i].FlatAppearance.BorderColor = on ? MapCanvas.RouteColor : Color.FromArgb(203, 213, 225);
+            }
+        }
+
+        // Nhãn nổi bật của một cách đi, so với các cách đi bằng xe đang hiển thị (chỉ gắn khi thật sự hơn cách khác)
+        private List<KeyValuePair<string, Color>> ItinBadges(Itinerary it)
+        {
+            var res = new List<KeyValuePair<string, Color>>();
+            if (it.WalkOnly)
+            {
+                res.Add(new KeyValuePair<string, Color>("Không cần xe buýt", Muted));
+                res.Add(new KeyValuePair<string, Color>("Miễn phí", Green));
+                return res;
+            }
+            double minSec = double.MaxValue, minWalk = double.MaxValue;
+            int minRides = int.MaxValue, minFare = int.MaxValue, buses = 0;
+            bool worseSec = false, worseWalk = false, worseRides = false, worseFare = false;
+            foreach (Itinerary o in itins)
+            {
+                if (o.WalkOnly) continue;
+                buses++;
+                minSec = Math.Min(minSec, o.Seconds); minWalk = Math.Min(minWalk, o.WalkMeters);
+                minRides = Math.Min(minRides, o.Rides); minFare = Math.Min(minFare, o.FareVnd);
+            }
+            foreach (Itinerary o in itins)
+            {
+                if (o.WalkOnly) continue;
+                if (o.Seconds > minSec + 1) worseSec = true;
+                if (o.WalkMeters > minWalk + 1) worseWalk = true;
+                if (o.Rides > minRides) worseRides = true;
+                if (o.FareVnd > minFare) worseFare = true;
+            }
+            if (buses < 2) return res;
+            if (worseSec && it.Seconds <= minSec + 1) res.Add(new KeyValuePair<string, Color>("Nhanh nhất", Green));
+            if (worseRides && it.Rides <= minRides) res.Add(new KeyValuePair<string, Color>("Ít đổi tuyến nhất", MapCanvas.RouteColor));
+            if (worseFare && it.FareVnd <= minFare) res.Add(new KeyValuePair<string, Color>("Rẻ nhất", Color.FromArgb(217, 119, 6)));
+            if (worseWalk && it.WalkMeters <= minWalk + 1) res.Add(new KeyValuePair<string, Color>("Ít đi bộ nhất", Color.FromArgb(124, 58, 237)));
+            return res;
+        }
+
+        // Thanh thời gian chia đoạn: xám = đi bộ, vàng = chờ xe, màu tuyến = đi xe. Độ dài tỉ lệ với thời gian.
+        private void DrawTimeline(Graphics g, Itinerary it, Rectangle r)
+        {
+            double total = Math.Max(1, it.Seconds);
+            var segs = new List<KeyValuePair<double, KeyValuePair<Color, string>>>();
+            foreach (TransitLeg leg in it.Legs)
+            {
+                if (leg.Walk)
+                    segs.Add(new KeyValuePair<double, KeyValuePair<Color, string>>(leg.Seconds, new KeyValuePair<Color, string>(Color.FromArgb(148, 163, 184), "bộ " + Math.Max(1, (int)Math.Round(leg.Seconds / 60)) + "p")));
+                else
+                {
+                    double wait = leg.Line.HeadwayMin * 30.0;
+                    segs.Add(new KeyValuePair<double, KeyValuePair<Color, string>>(wait, new KeyValuePair<Color, string>(Color.FromArgb(245, 158, 11), "chờ " + Math.Max(1, (int)Math.Round(wait / 60)) + "p")));
+                    segs.Add(new KeyValuePair<double, KeyValuePair<Color, string>>(leg.Seconds, new KeyValuePair<Color, string>(leg.Line.Color, leg.Line.Ref + " · " + Math.Max(1, (int)Math.Round(leg.Seconds / 60)) + "p")));
+                }
+            }
+            using (GraphicsPath clip = RoundPath(r, 7))
+            {
+                GraphicsState st = g.Save();
+                g.SetClip(clip, CombineMode.Intersect);
+                float x = r.X;
+                for (int i = 0; i < segs.Count; i++)
+                {
+                    float w = (float)(segs[i].Key / total * r.Width);
+                    if (i == segs.Count - 1) w = r.Right - x;
+                    var sr = new RectangleF(x, r.Y, Math.Max(3f, w), r.Height);
+                    using (var b = new SolidBrush(segs[i].Value.Key)) g.FillRectangle(b, sr);
+                    if (i > 0) using (var sep = new Pen(Color.White, 1.5f)) g.DrawLine(sep, x, r.Y, x, r.Bottom);
+                    if (w >= 46)
+                        TextRenderer.DrawText(g, segs[i].Value.Value, SmallFont, Rectangle.Round(sr), Color.White,
+                                              TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+                    x += w;
+                }
+                g.Restore(st);
+            }
+        }
         private void cboWalkLimit_SelectedIndexChanged(object sender, EventArgs e) { ApplyItinFilter(); }
         private void chkWalkSuggest_CheckedChanged(object sender, EventArgs e) { ApplyItinFilter(); }
 
@@ -1324,11 +1422,29 @@ namespace TestMap
                 TextRenderer.DrawText(g, r.StopCount + " trạm · " + FormatDistance(r.Meters) + " · chờ ~" + Math.Max(1, r.Line.HeadwayMin / 2) + "p", SmallFont, tr, Muted, fl);
             }
 
+            // Thanh thời gian chia đoạn
+            int ty = by + bh + 8;
+            DrawTimeline(g, it, new Rectangle(card.X + 12, ty, inner, 16));
+
             // Tổng đi bộ | tổng đi xe
-            int ry = by + bh + 10;
+            int ry = ty + 22;
             DrawWalkIcon(g, new Rectangle(card.X + 12, ry, 16, 18), Muted);
             string walk = Math.Round(it.WalkMeters) + " m";
             TextRenderer.DrawText(g, walk, InfoFont, new Point(card.X + 32, ry), Muted, TextFormatFlags.NoPadding);
+            // Nhãn nổi bật (Nhanh nhất, Rẻ nhất...)
+            int bx = card.X + 12, bgy = ry + 22;
+            foreach (KeyValuePair<string, Color> badge in ItinBadges(it))
+            {
+                int bw2 = TextRenderer.MeasureText(badge.Key, SmallBoldFont, new Size(1000, 100), TextFormatFlags.NoPadding).Width + 16;
+                var br = new Rectangle(bx, bgy, bw2, 18);
+                using (GraphicsPath bp2 = RoundPath(br, 9))
+                using (var bb2 = new SolidBrush(badge.Value))
+                    g.FillPath(bb2, bp2);
+                TextRenderer.DrawText(g, badge.Key, SmallBoldFont, br, Color.White,
+                                      TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                bx += bw2 + 6;
+            }
+
             if (it.Rides == 0) return;
             int sepX = card.X + 32 + TextRenderer.MeasureText(walk, InfoFont, new Size(1000, 100), TextFormatFlags.NoPadding).Width + 14;
             using (var sep = new Pen(Color.FromArgb(226, 232, 240), 1.5f)) g.DrawLine(sep, sepX, ry + 1, sepX, ry + 17);

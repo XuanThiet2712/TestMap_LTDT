@@ -42,6 +42,7 @@ namespace TestMap
             mapCanvas.SimCurrentNode = -1;
             mapCanvas.SimStops = null;
             mapCanvas.SimCurrentStop = -1;
+            mapCanvas.SimHasHLine = false;
         }
 
         // =====================================================================

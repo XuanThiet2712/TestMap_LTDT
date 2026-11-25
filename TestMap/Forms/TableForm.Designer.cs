@@ -26,11 +26,15 @@ namespace TestMap.Forms
             this.btnTablePlay = new System.Windows.Forms.Button();
             this.btnTableNext = new System.Windows.Forms.Button();
             this.btnTableEnd = new System.Windows.Forms.Button();
+            this.btnTableCopy = new System.Windows.Forms.Button();
+            this.btnTableSave = new System.Windows.Forms.Button();
             this.lblTableLegend = new System.Windows.Forms.Label();
             this.lblTableExplain = new System.Windows.Forms.Label();
             this.pnlTableTop = new System.Windows.Forms.Panel();
             this.lblTableGraph = new System.Windows.Forms.Label();
             this.cboTableGraph = new System.Windows.Forms.ComboBox();
+            this.lblTableAlgo = new System.Windows.Forms.Label();
+            this.cboTableAlgo = new System.Windows.Forms.ComboBox();
             this.lblTableSrc = new System.Windows.Forms.Label();
             this.cboTableSrc = new System.Windows.Forms.ComboBox();
             this.lblTableDst = new System.Windows.Forms.Label();
@@ -83,6 +87,8 @@ namespace TestMap.Forms
             this.pnlTableBottom.Controls.Add(this.btnTablePlay);
             this.pnlTableBottom.Controls.Add(this.btnTableNext);
             this.pnlTableBottom.Controls.Add(this.btnTableEnd);
+            this.pnlTableBottom.Controls.Add(this.btnTableCopy);
+            this.pnlTableBottom.Controls.Add(this.btnTableSave);
             this.pnlTableBottom.Controls.Add(this.lblTableLegend);
             this.pnlTableBottom.Controls.Add(this.lblTableExplain);
             this.pnlTableBottom.BackColor = System.Drawing.Color.FromArgb(241, 245, 249);
@@ -190,15 +196,45 @@ namespace TestMap.Forms
             this.btnTableEnd.UseVisualStyleBackColor = false;
             this.btnTableEnd.Click += new System.EventHandler(this.btnTableEnd_Click);
             // 
+            // btnTableCopy
+            // 
+            this.btnTableCopy.BackColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnTableCopy.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnTableCopy.FlatAppearance.BorderSize = 0;
+            this.btnTableCopy.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnTableCopy.ForeColor = System.Drawing.Color.FromArgb(255, 255, 255);
+            this.btnTableCopy.Location = new System.Drawing.Point(396, 74);
+            this.btnTableCopy.Name = "btnTableCopy";
+            this.btnTableCopy.Size = new System.Drawing.Size(140, 32);
+            this.btnTableCopy.TabIndex = 7;
+            this.btnTableCopy.Text = "📋 Sao chép bảng";
+            this.btnTableCopy.UseVisualStyleBackColor = false;
+            this.btnTableCopy.Click += new System.EventHandler(this.btnTableCopy_Click);
+            // 
+            // btnTableSave
+            // 
+            this.btnTableSave.BackColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.btnTableSave.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnTableSave.FlatAppearance.BorderSize = 0;
+            this.btnTableSave.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnTableSave.ForeColor = System.Drawing.Color.FromArgb(255, 255, 255);
+            this.btnTableSave.Location = new System.Drawing.Point(542, 74);
+            this.btnTableSave.Name = "btnTableSave";
+            this.btnTableSave.Size = new System.Drawing.Size(130, 32);
+            this.btnTableSave.TabIndex = 8;
+            this.btnTableSave.Text = "💾 Lưu HTML";
+            this.btnTableSave.UseVisualStyleBackColor = false;
+            this.btnTableSave.Click += new System.EventHandler(this.btnTableSave_Click);
+            // 
             // lblTableLegend
             // 
             this.lblTableLegend.AutoSize = false;
             this.lblTableLegend.ForeColor = System.Drawing.Color.FromArgb(100, 116, 139);
             this.lblTableLegend.Font = new System.Drawing.Font("Segoe UI", 8.5F);
-            this.lblTableLegend.Location = new System.Drawing.Point(396, 76);
+            this.lblTableLegend.Location = new System.Drawing.Point(12, 110);
             this.lblTableLegend.Name = "lblTableLegend";
-            this.lblTableLegend.Size = new System.Drawing.Size(640, 30);
-            this.lblTableLegend.TabIndex = 7;
+            this.lblTableLegend.Size = new System.Drawing.Size(860, 34);
+            this.lblTableLegend.TabIndex = 9;
             this.lblTableLegend.Text = "Bảng: ô = (khoảng cách ngắn nhất hiện biết, đỉnh đứng trước).  Ô xanh đậm = đỉnh được chốt tiếp.  Ô vàng = vừa cập nhật.  \"–\" = đã chốt.  Trên bản đồ: chấm cam = đã chốt, chấm xanh = đang xét.";
             // 
             // lblTableExplain
@@ -207,17 +243,19 @@ namespace TestMap.Forms
             this.lblTableExplain.BackColor = System.Drawing.Color.FromArgb(241, 245, 249);
             this.lblTableExplain.ForeColor = System.Drawing.Color.FromArgb(15, 23, 42);
             this.lblTableExplain.Font = new System.Drawing.Font("Segoe UI", 9.5F);
-            this.lblTableExplain.Location = new System.Drawing.Point(12, 114);
+            this.lblTableExplain.Location = new System.Drawing.Point(12, 148);
             this.lblTableExplain.Name = "lblTableExplain";
             this.lblTableExplain.Padding = new System.Windows.Forms.Padding(10, 8, 10, 8);
-            this.lblTableExplain.Size = new System.Drawing.Size(860, 130);
-            this.lblTableExplain.TabIndex = 8;
+            this.lblTableExplain.Size = new System.Drawing.Size(860, 96);
+            this.lblTableExplain.TabIndex = 10;
             this.lblTableExplain.Text = "";
             // 
             // pnlTableTop
             // 
             this.pnlTableTop.Controls.Add(this.lblTableGraph);
             this.pnlTableTop.Controls.Add(this.cboTableGraph);
+            this.pnlTableTop.Controls.Add(this.lblTableAlgo);
+            this.pnlTableTop.Controls.Add(this.cboTableAlgo);
             this.pnlTableTop.Controls.Add(this.lblTableSrc);
             this.pnlTableTop.Controls.Add(this.cboTableSrc);
             this.pnlTableTop.Controls.Add(this.lblTableDst);
@@ -244,29 +282,51 @@ namespace TestMap.Forms
             // 
             this.cboTableGraph.Location = new System.Drawing.Point(64, 11);
             this.cboTableGraph.Name = "cboTableGraph";
-            this.cboTableGraph.Size = new System.Drawing.Size(250, 23);
+            this.cboTableGraph.Size = new System.Drawing.Size(230, 23);
             this.cboTableGraph.TabIndex = 1;
             this.cboTableGraph.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cboTableGraph.FormattingEnabled = true;
             this.cboTableGraph.SelectedIndexChanged += new System.EventHandler(this.cboTableGraph_SelectedIndexChanged);
+            // 
+            // lblTableAlgo
+            // 
+            this.lblTableAlgo.AutoSize = false;
+            this.lblTableAlgo.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            this.lblTableAlgo.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblTableAlgo.Location = new System.Drawing.Point(306, 15);
+            this.lblTableAlgo.Name = "lblTableAlgo";
+            this.lblTableAlgo.Size = new System.Drawing.Size(76, 20);
+            this.lblTableAlgo.TabIndex = 2;
+            this.lblTableAlgo.Text = "Thuật toán";
+            // 
+            // cboTableAlgo
+            // 
+            this.cboTableAlgo.Location = new System.Drawing.Point(384, 11);
+            this.cboTableAlgo.Name = "cboTableAlgo";
+            this.cboTableAlgo.Size = new System.Drawing.Size(96, 23);
+            this.cboTableAlgo.TabIndex = 3;
+            this.cboTableAlgo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboTableAlgo.FormattingEnabled = true;
+            this.cboTableAlgo.Items.AddRange(new object[] {"Dijkstra", "A*"});
+            this.cboTableAlgo.SelectedIndex = 1;
             // 
             // lblTableSrc
             // 
             this.lblTableSrc.AutoSize = false;
             this.lblTableSrc.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
             this.lblTableSrc.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.lblTableSrc.Location = new System.Drawing.Point(330, 15);
+            this.lblTableSrc.Location = new System.Drawing.Point(494, 15);
             this.lblTableSrc.Name = "lblTableSrc";
             this.lblTableSrc.Size = new System.Drawing.Size(28, 20);
-            this.lblTableSrc.TabIndex = 2;
+            this.lblTableSrc.TabIndex = 4;
             this.lblTableSrc.Text = "Từ";
             // 
             // cboTableSrc
             // 
-            this.cboTableSrc.Location = new System.Drawing.Point(360, 11);
+            this.cboTableSrc.Location = new System.Drawing.Point(524, 11);
             this.cboTableSrc.Name = "cboTableSrc";
-            this.cboTableSrc.Size = new System.Drawing.Size(190, 23);
-            this.cboTableSrc.TabIndex = 3;
+            this.cboTableSrc.Size = new System.Drawing.Size(170, 23);
+            this.cboTableSrc.TabIndex = 5;
             this.cboTableSrc.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cboTableSrc.FormattingEnabled = true;
             // 
@@ -275,18 +335,18 @@ namespace TestMap.Forms
             this.lblTableDst.AutoSize = false;
             this.lblTableDst.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
             this.lblTableDst.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.lblTableDst.Location = new System.Drawing.Point(566, 15);
+            this.lblTableDst.Location = new System.Drawing.Point(706, 15);
             this.lblTableDst.Name = "lblTableDst";
             this.lblTableDst.Size = new System.Drawing.Size(36, 20);
-            this.lblTableDst.TabIndex = 4;
+            this.lblTableDst.TabIndex = 6;
             this.lblTableDst.Text = "Tới";
             // 
             // cboTableDst
             // 
-            this.cboTableDst.Location = new System.Drawing.Point(604, 11);
+            this.cboTableDst.Location = new System.Drawing.Point(744, 11);
             this.cboTableDst.Name = "cboTableDst";
-            this.cboTableDst.Size = new System.Drawing.Size(190, 23);
-            this.cboTableDst.TabIndex = 5;
+            this.cboTableDst.Size = new System.Drawing.Size(170, 23);
+            this.cboTableDst.TabIndex = 7;
             this.cboTableDst.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cboTableDst.FormattingEnabled = true;
             // 
@@ -298,10 +358,10 @@ namespace TestMap.Forms
             this.btnTableBuild.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnTableBuild.ForeColor = System.Drawing.Color.FromArgb(255, 255, 255);
             this.btnTableBuild.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.btnTableBuild.Location = new System.Drawing.Point(810, 9);
+            this.btnTableBuild.Location = new System.Drawing.Point(930, 9);
             this.btnTableBuild.Name = "btnTableBuild";
-            this.btnTableBuild.Size = new System.Drawing.Size(120, 28);
-            this.btnTableBuild.TabIndex = 6;
+            this.btnTableBuild.Size = new System.Drawing.Size(110, 28);
+            this.btnTableBuild.TabIndex = 8;
             this.btnTableBuild.Text = "Lập bảng";
             this.btnTableBuild.UseVisualStyleBackColor = false;
             this.btnTableBuild.Click += new System.EventHandler(this.btnTableBuild_Click);
@@ -313,13 +373,15 @@ namespace TestMap.Forms
             this.Controls.Add(this.pnlTableBottom);
             this.Controls.Add(this.pnlTableTop);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
-            this.ClientSize = new System.Drawing.Size(1100, 720);
+            this.ClientSize = new System.Drawing.Size(1100, 740);
             this.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.MinimumSize = new System.Drawing.Size(900, 600);
             this.Name = "TableForm";
+            this.KeyPreview = true;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Bảng Dijkstra từng bước";
+            this.Text = "Bảng Dijkstra / A* từng bước";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.TableForm_FormClosed);
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TableForm_KeyDown);
             this.pnlTableBottom.ResumeLayout(false);
             this.pnlTableTop.ResumeLayout(false);
             this.ResumeLayout(false);
@@ -338,11 +400,15 @@ namespace TestMap.Forms
         private System.Windows.Forms.Button btnTablePlay;
         private System.Windows.Forms.Button btnTableNext;
         private System.Windows.Forms.Button btnTableEnd;
+        private System.Windows.Forms.Button btnTableCopy;
+        private System.Windows.Forms.Button btnTableSave;
         private System.Windows.Forms.Label lblTableLegend;
         private System.Windows.Forms.Label lblTableExplain;
         private System.Windows.Forms.Panel pnlTableTop;
         private System.Windows.Forms.Label lblTableGraph;
         private System.Windows.Forms.ComboBox cboTableGraph;
+        private System.Windows.Forms.Label lblTableAlgo;
+        private System.Windows.Forms.ComboBox cboTableAlgo;
         private System.Windows.Forms.Label lblTableSrc;
         private System.Windows.Forms.ComboBox cboTableSrc;
         private System.Windows.Forms.Label lblTableDst;
