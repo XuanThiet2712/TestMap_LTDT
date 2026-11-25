@@ -41,6 +41,7 @@ namespace TestMap
 
         private static readonly Area[] Areas =
         {
+            new Area("demo_9", "★ Demo 9 đỉnh (giống bài giảng)", 10.7751, 106.6907, 10.7810, 106.6988) { Offline = true },
             // Quận 1, 3, 5, 10 gộp thành MỘT bản đồ (hộp bao ngoài cùng của 4 quận).
             new Area("hcm_q1_3_5_10", "TP.HCM - Quận 1, 3, 5, 10 (gộp)", 10.7490, 106.6500, 10.7900, 106.7110),
             new Area("demo_nho", "★ Demo đơn giản (cho thầy)", 10.7690, 106.6890, 10.7790, 106.7020) { Offline = true },
@@ -133,8 +134,10 @@ namespace TestMap
 
             InitMap();
             foreach (Area a in Areas) cboArea.Items.Add(a);
-            cboArea.SelectedIndex = 0;
+            cboArea.SelectedIndex = 0;          // mặc định: khu vực "★ Demo 9 đỉnh"
 
+            demoMode = chkDemo.Checked;
+            RefreshChrome();
             SetMode(Mode.Bus);
         }
 
@@ -1591,6 +1594,7 @@ namespace TestMap
 
             favorites = passenger ? UserStore.LoadFavorites(DataRoot, account.Name) : new List<FavPlace>();
             RefreshFavCombo();
+            RefreshChrome();            // chế độ demo ẩn các nút tài khoản
         }
 
         // ----- Yêu thích (hành khách) -----

@@ -36,6 +36,8 @@ namespace TestMap
             this.pnlProgress = new System.Windows.Forms.Panel();
             this.pbLoad = new TestMap.Forms.PercentBar();
             this.lblProgress = new System.Windows.Forms.Label();
+            this.chkDemo = new System.Windows.Forms.CheckBox();
+            this.btnTable = new System.Windows.Forms.Button();
             this.chkNodes = new System.Windows.Forms.CheckBox();
             this.chkWeights = new System.Windows.Forms.CheckBox();
             this.chkNames = new System.Windows.Forms.CheckBox();
@@ -179,6 +181,7 @@ namespace TestMap
             // flowTop
             // 
             this.flowTop.BackColor = System.Drawing.Color.FromArgb(15, 23, 42);
+            this.flowTop.Controls.Add(this.chkDemo);
             this.flowTop.Controls.Add(this.cboArea);
             this.flowTop.Controls.Add(this.cboAlgo);
             this.flowTop.Controls.Add(this.chkStops);
@@ -194,6 +197,7 @@ namespace TestMap
             this.flowTop.Controls.Add(this.lblAccount);
             this.flowTop.Controls.Add(this.btnPoiFilter);
             this.flowTop.Controls.Add(this.btnSim);
+            this.flowTop.Controls.Add(this.btnTable);
             this.flowTop.Controls.Add(this.chkNodes);
             this.flowTop.Controls.Add(this.chkWeights);
             this.flowTop.Controls.Add(this.chkNames);
@@ -206,6 +210,21 @@ namespace TestMap
             this.flowTop.TabIndex = 0;
             this.flowTop.WrapContents = true;
             this.flowTop.SetFlowBreak(this.btnReload, true);
+            // 
+            // chkDemo
+            // 
+            this.chkDemo.AutoSize = true;
+            this.chkDemo.Checked = true;
+            this.chkDemo.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkDemo.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.chkDemo.ForeColor = System.Drawing.Color.FromArgb(253, 224, 71);
+            this.chkDemo.Location = new System.Drawing.Point(12, 16);
+            this.chkDemo.Margin = new System.Windows.Forms.Padding(0, 6, 14, 0);
+            this.chkDemo.Name = "chkDemo";
+            this.chkDemo.Size = new System.Drawing.Size(130, 19);
+            this.chkDemo.TabIndex = 13;
+            this.chkDemo.Text = "Chế độ demo";
+            this.chkDemo.CheckedChanged += new System.EventHandler(this.chkDemo_CheckedChanged);
             // 
             // cboArea
             // 
@@ -422,6 +441,22 @@ namespace TestMap
             this.btnSim.Text = "⚙ Mô phỏng";
             this.btnSim.UseVisualStyleBackColor = false;
             this.btnSim.Click += new System.EventHandler(this.btnSim_Click);
+            // 
+            // btnTable
+            // 
+            this.btnTable.BackColor = System.Drawing.Color.FromArgb(22, 163, 74);
+            this.btnTable.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnTable.FlatAppearance.BorderSize = 0;
+            this.btnTable.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnTable.ForeColor = System.Drawing.Color.White;
+            this.btnTable.Location = new System.Drawing.Point(0, 0);
+            this.btnTable.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
+            this.btnTable.Name = "btnTable";
+            this.btnTable.Size = new System.Drawing.Size(130, 32);
+            this.btnTable.TabIndex = 14;
+            this.btnTable.Text = "▦ Bảng Dijkstra";
+            this.btnTable.UseVisualStyleBackColor = false;
+            this.btnTable.Click += new System.EventHandler(this.btnTable_Click);
             // 
             // chkNodes
             // 
@@ -1462,6 +1497,8 @@ namespace TestMap
         private System.Windows.Forms.Panel pnlProgress;
         private TestMap.Forms.PercentBar pbLoad;
         private System.Windows.Forms.Label lblProgress;
+        private System.Windows.Forms.CheckBox chkDemo;
+        private System.Windows.Forms.Button btnTable;
         private System.Windows.Forms.CheckBox chkNodes;
         private System.Windows.Forms.CheckBox chkWeights;
         private System.Windows.Forms.CheckBox chkNames;
